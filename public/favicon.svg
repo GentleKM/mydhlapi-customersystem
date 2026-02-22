@@ -1,0 +1,20 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<!-- DHL 고유의 노란색 배경 (Rounded Square) -->
+<rect width="32" height="32" rx="6" fill="#FFCC00"/>
+
+<!-- "My" 텍스트 (작게 상단 배치) -->
+
+<text x="4" y="10" fill="#D40511" font-family="sans-serif" font-size="7" font-weight="bold">My</text>
+
+<!-- "DHL" 텍스트 (가운데 크게 배치) -->
+
+<text x="3" y="21" fill="#D40511" font-family="sans-serif" font-size="11" font-weight="900" letter-spacing="-0.5">DHL</text>
+
+<!-- "API" 텍스트 (하단 오른쪽 배치) -->
+
+<text x="18" y="28" fill="#D40511" font-family="sans-serif" font-size="7" font-weight="bold">API</text>
+
+<!-- 하단 강조 라인 (DHL 로고의 속도감을 표현) -->
+
+<rect x="3" y="23" width="12" height="1.5" fill="#D40511"/>
+</svg>
