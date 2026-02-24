@@ -97,7 +97,7 @@ export default function HomePage() {
               <p className="text-sm text-muted-foreground">
                 생성된 운송장 목록을 확인하고 상세 정보를 조회하세요.
               </p>
-              <Button asChild className="w-full" variant="outline">
+              <Button asChild className="w-full" variant="default">
                 <Link href="/shipments">운송장 목록 보기</Link>
               </Button>
             </CardContent>
@@ -114,7 +114,7 @@ export default function HomePage() {
               <p className="text-sm text-muted-foreground">
                 별도의 픽업 예약을 요청하고 일정을 관리하세요.
               </p>
-              <Button asChild className="w-full" variant="outline">
+              <Button asChild className="w-full" variant="default">
                 <Link href="/pickup">픽업 요청하기</Link>
               </Button>
             </CardContent>

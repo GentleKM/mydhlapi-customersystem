@@ -44,6 +44,8 @@ alwaysApply: true
 - Server Actions: 내부 폼 제출 및 보안이 필요한 DHL API 호출에 우선 사용한다. (`"use server"` 필수)
 - Route Handlers: 외부 연동용 엔드포인트가 필요한 경우 `app/api/` 경로에 작성한다.
 - Error Handling: MyDHL API의 에러 응답(`supermodelIoLogisticsExpressErrorResponse`) 형식을 준수하여 클라이언트에 명확한 한국어 에러 메시지를 반환한다.
+- 이 프로젝트에서는 **.env.local에 있는 MyDHL API 테스트 서버로만 요청**하고, 각 기능별 Endpoint URL Path는 `docs/mydhlapi endpoint*` 이미지 파일을 참고
+- **DHL_CLIENT_ID, DHL_CLIENT_SECRET, DHL_ACCOUNT_NUMBER는 외부로 노출되지 않도록 철저히 관리**
 
 ## 5. Zod & TypeScript
 
