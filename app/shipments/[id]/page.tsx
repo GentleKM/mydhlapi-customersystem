@@ -7,11 +7,12 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 
 import { AuthButtons } from "@/components/AuthButtons";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FloatHomeButton } from "@/components/FloatHomeButton";
-import { getShipmentById, deleteShipment } from "@/lib/actions/shipment";
+import { getShipmentById, deleteShipment, createDhlLabel } from "@/lib/actions/shipment";
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "작성 중",
@@ -25,6 +26,8 @@ export default function ShipmentDetailPage() {
   const params = useParams();
   const id = params.id as string;
 
+  const [labelError, setLabelError] = useState<string | null>(null);
+  const [isCreatingLabel, setIsCreatingLabel] = useState(false);
   const [data, setData] = useState<
     (Record<string, unknown> & {
       lineItems: Array<Record<string, unknown>>;
@@ -41,6 +44,23 @@ export default function ShipmentDetailPage() {
       else if (d) setData(d);
     });
   }, [id]);
+
+  const handleCreateLabel = async () => {
+    if (isCreatingLabel) return;
+    setIsCreatingLabel(true);
+    setLabelError(null);
+    try {
+      const { awb, error } = await createDhlLabel(id);
+      if (error) {
+        setLabelError(error);
+        return;
+      }
+      const { data: d } = await getShipmentById(id);
+      if (d) setData(d);
+    } finally {
+      setIsCreatingLabel(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!confirm("정말 이 운송장을 삭제하시겠습니까?")) return;
@@ -102,14 +122,33 @@ export default function ShipmentDetailPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Badge variant="outline">
           {STATUS_LABEL[(s.status as string) ?? ""] ?? String(s.status ?? "")}
         </Badge>
         <span className="text-sm text-muted-foreground">
           운송장 번호: {(s.airway_bill_number as string) ?? "미발급"}
         </span>
+        {(s.status as string) === "draft" && (
+          <Button
+            size="sm"
+            onClick={handleCreateLabel}
+            disabled={isCreatingLabel}
+          >
+            {isCreatingLabel ? (
+              <>
+                <Spinner className="mr-2 size-4" />
+                라벨 생성 중...
+              </>
+            ) : (
+              "라벨 생성"
+            )}
+          </Button>
+        )}
       </div>
+      {labelError && (
+        <p className="text-sm text-destructive">{labelError}</p>
+      )}
 
       <Card className="bg-card/80 backdrop-blur-sm">
         <CardHeader>

@@ -7,6 +7,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { ContentType } from "@/lib/shipment-types";
+import { mapToDhlCreateShipmentRequest } from "@/lib/dhl/mapper";
+import { createDhlShipment } from "@/lib/dhl/client";
 
 export type ShipmentStatus =
   | "draft"
@@ -353,6 +355,119 @@ export async function deleteShipment(
 
   if (error) return { error: error.message };
   return { error: null };
+}
+
+/** MyDHL API로 라벨을 생성하고 DB를 업데이트합니다. PRD 6단계: 라벨 생성 버튼 클릭 시 실행. */
+export async function createDhlLabel(
+  shipmentId: string
+): Promise<{ awb: string | null; error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.id) {
+    return { awb: null, error: "로그인이 필요합니다." };
+  }
+
+  const baseUrl = process.env.DHL_BASE_URL;
+  const clientId = process.env.DHL_CLIENT_ID;
+  const clientSecret = process.env.DHL_CLIENT_SECRET;
+  const accountExp = process.env.DHL_ACCOUNT_EXP;
+  const accountImp = process.env.DHL_ACCOUNT_IMP;
+
+  if (!baseUrl || !clientId || !clientSecret || !accountExp || !accountImp) {
+    return { awb: null, error: "DHL API 설정이 완료되지 않았습니다. 관리자에게 문의해주세요." };
+  }
+
+  const { data: shipmentData, error: fetchError } = await getShipmentById(shipmentId);
+  if (fetchError || !shipmentData) {
+    return { awb: null, error: fetchError ?? "운송장을 찾을 수 없습니다." };
+  }
+
+  const s = shipmentData as Record<string, unknown>;
+  const status = s.status as string;
+  if (status !== "draft") {
+    return { awb: null, error: "이미 라벨이 생성된 운송장입니다." };
+  }
+
+  const lineItems = ((shipmentData as { lineItems?: Array<Record<string, unknown>> }).lineItems ?? []).map((li) => ({
+    description: (li.description as string) ?? "",
+    quantity_value: Number(li.quantity_value) || 1,
+    quantity_unit: (li.quantity_unit as string) ?? "PCS",
+    value: Number(li.value) || 0,
+    weight_net: Number(li.weight_net ?? li.weight_gross) || 0,
+    weight_gross: Number(li.weight_gross ?? li.weight_net) || 0,
+    hs_code: (li.hs_code as string) ?? null,
+    manufacturer_country: (li.manufacturer_country as string) ?? null,
+    export_reason_type: (li.export_reason_type as string) ?? "commercial",
+  }));
+
+  const pkg = (shipmentData as { package?: Record<string, unknown> }).package;
+  if (!pkg) {
+    return { awb: null, error: "포장 정보가 없습니다." };
+  }
+
+  const payload = {
+    shipper_name: (s.shipper_name as string) ?? "",
+    shipper_address1: (s.shipper_address1 as string) ?? "",
+    shipper_address2: (s.shipper_address2 as string) ?? null,
+    shipper_postal_code: (s.shipper_postal_code as string) ?? "",
+    shipper_city: (s.shipper_city as string) ?? "",
+    receiver_name: (s.receiver_name as string) ?? "",
+    receiver_company: (s.receiver_company as string) ?? null,
+    receiver_country: (s.receiver_country as string) ?? "",
+    receiver_address1: (s.receiver_address1 as string) ?? "",
+    receiver_address2: (s.receiver_address2 as string) ?? null,
+    receiver_postal_code: (s.receiver_postal_code as string) ?? "",
+    receiver_city: (s.receiver_city as string) ?? "",
+    receiver_email: (s.receiver_email as string) ?? "",
+    receiver_phone: (s.receiver_phone as string) ?? "",
+    content_type: (s.content_type as "documents" | "goods") ?? "goods",
+    gogreen_plus: (s.gogreen_plus as boolean) ?? false,
+    lineItems,
+    package: {
+      weight: Number(pkg.weight) || 1,
+      length: Number(pkg.length) || 10,
+      width: Number(pkg.width) || 10,
+      height: Number(pkg.height) || 10,
+    },
+  };
+
+  const dhlBody = mapToDhlCreateShipmentRequest(payload, {
+    accountExp,
+    accountImp,
+  });
+
+  const { data: dhlResponse, error: dhlError } = await createDhlShipment(
+    baseUrl,
+    clientId,
+    clientSecret,
+    dhlBody
+  );
+
+  if (dhlError || !dhlResponse) {
+    return { awb: null, error: dhlError ?? "DHL API 호출에 실패했습니다." };
+  }
+
+  const awb = dhlResponse.shipmentTrackingNumber;
+  if (!awb) {
+    return { awb: null, error: "DHL 응답에서 운송장 번호를 찾을 수 없습니다." };
+  }
+
+  const { error: updateError } = await supabase
+    .from("shipment")
+    .update({
+      airway_bill_number: awb,
+      status: "label_created",
+    })
+    .eq("id", shipmentId)
+    .eq("user_id", user.id);
+
+  if (updateError) {
+    return { awb, error: `라벨 생성은 완료되었으나 DB 업데이트에 실패했습니다: ${updateError.message}` };
+  }
+
+  return { awb, error: null };
 }
 
 /** 사용자 승인 여부를 조회합니다. */

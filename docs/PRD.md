@@ -31,11 +31,37 @@ MyDHL API와 Gemini 3 Flash Preview를 결합하여 운송장 생성, 조회, �
 - **운송장 조회 페이지**: 기존 생성된 운송장의 상세 정보 및 히스토리 확인
 - **픽업 요청 페이지**: 별도의 픽업 예약만을 위한 전용 화면
 
-## 4. 데이터베이스 구조 💾
+## 4. 데이터베이스 구조
+
 - **Users 테이블**: 사용자 계정 및 승인 상태 관리.
 - **Shipments 테이블**: 운송장 및 픽업 정보 관리 (User ID와 Foreign Key 연결).
 
-## 5. 개발 원칙 🛠️
+## 5. 개발 원칙
+
 - 모든 API 응답 데이터는 **Zod**를 사용하여 런타임 검증 수행
 - 사용자에게는 에러 코드 대신 친절한 **한글 메시지** 제공
 - 모든 함수와 컴포넌트 상단에는 한 줄의 **한글 개요** 작성
+
+## 6. 운송장 생성 프로세스
+
+- process
+1) 사용자가 운송장 데이터 입력
+2) MyDHL API 스펙 JSON으로 변환
+3) Next.js 서버에서 fetch로 MyDHL API 테스트 서버로 전송
+4) 응답(AWB/라벨 등)
+
+- detailed process
+1) 사용자가 /shipments/create에서 입력
+2) createShipment()로 DB(Supabase)에 draft 저장
+3) 상세(/shipments/[id])에서 “라벨 생성” 버튼 클릭
+4) 서버 액션 createDhlLabel(shipmentId) 실행
+5) DB에서 shipment/lineItems/package 다시 읽기(권한 체크)
+6) DB → MyDHL 요청 JSON 변환(mapper)
+7) 서버에서 fetch로 MyDHL API 호출
+8) 응답에서 AWB/라벨 추출 → DB 업데이트(status 전환)
+9) UI에 결과 표시
+
+- 참고사항 및 주의사항
+1) `docs/mydhl-api-2.9.0-swagger copy.yaml`, `/docs/MyDHL API Reference data guide (3.1.2).pdf` 규칙을 바탕으로 개발
+2) MyDHL API는 Basic Auth를 통해 인증.
+3) .env.local에 정리되어 있는 테스트 서버 URL로 전송
