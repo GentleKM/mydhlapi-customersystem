@@ -199,6 +199,7 @@ export async function createShipment(
     return { id: null, error: "로그인이 필요합니다." };
   }
 
+  const receiverName = input.receiver.name || "";
   const { data: shipment, error: shipError } = await supabase
     .from("shipment")
     .insert({
@@ -208,7 +209,7 @@ export async function createShipment(
       shipper_address2: input.shipper.address2 || null,
       shipper_postal_code: input.shipper.postalCode,
       shipper_city: input.shipper.cityName,
-      receiver_name: input.receiver.name,
+      receiver_name: receiverName,
       receiver_company: input.receiver.company || null,
       receiver_country: input.receiver.country,
       receiver_address1: input.receiver.address1,
