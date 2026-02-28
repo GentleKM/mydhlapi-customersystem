@@ -18,9 +18,11 @@ import { AuthButtons } from "@/components/AuthButtons";
 import { FloatHomeButton } from "@/components/FloatHomeButton";
 import {
   type ContentType,
+  type CurrencyCode,
   type ExportReasonType,
   type LineItemFormData,
   type QuantityUnit,
+  CURRENCY_CODES,
   QUANTITY_UNITS,
 } from "@/lib/shipment-types";
 import { getShipmentById, updateShipment } from "@/lib/actions/shipment";
@@ -44,6 +46,7 @@ const createEmptyLineItem = (): LineItemFormData => ({
   quantityValue: 1,
   quantityUnit: "PCS",
   value: 0,
+  valueCurrency: "USD",
   weight: 0,
   hsCode: "",
   manufacturerCountry: "",
@@ -116,6 +119,7 @@ export default function EditShipmentPage() {
             quantityValue: Number(li.quantity_value) || 1,
             quantityUnit: (li.quantity_unit as QuantityUnit) ?? "PCS",
             value: Number(li.value) || 0,
+            valueCurrency: ((li.value_currency as string) || "USD") as CurrencyCode,
             weight: Number(li.weight_net ?? li.weight_gross) || 0,
             hsCode: (li.hs_code as string) ?? "",
             manufacturerCountry: (li.manufacturer_country as string) ?? "",
@@ -270,7 +274,7 @@ export default function EditShipmentPage() {
                       <div className="space-y-2 sm:col-span-2"><Label>발송물 정보 (설명) *</Label><Input placeholder="ex. shoes nike A123" value={item.description} onChange={(e) => updateLineItem(idx, { description: e.target.value })} required /></div>
                       <div className="space-y-2"><Label>수량 *</Label><Input type="number" min={1} value={item.quantityValue || ""} onChange={(e) => updateLineItem(idx, { quantityValue: parseInt(e.target.value, 10) || 0 })} /></div>
                       <div className="space-y-2"><Label>단위 *</Label><Select value={item.quantityUnit} onValueChange={(v) => updateLineItem(idx, { quantityUnit: v as QuantityUnit })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{QUANTITY_UNITS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select></div>
-                      <div className="space-y-2"><Label>Value (금액) *</Label><Input type="number" step="0.001" min={0} value={item.value || ""} onChange={(e) => updateLineItem(idx, { value: parseFloat(e.target.value) || 0 })} /></div>
+                      <div className="space-y-2"><Label>물품 금액 *</Label><div className="flex gap-2"><Input type="number" step="0.001" min={0} className="flex-1" value={item.value || ""} onChange={(e) => updateLineItem(idx, { value: parseFloat(e.target.value) || 0 })} /><Select value={item.valueCurrency} onValueChange={(v) => updateLineItem(idx, { valueCurrency: v as CurrencyCode })}><SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger><SelectContent>{CURRENCY_CODES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div></div>
                       <div className="space-y-2"><Label>Weight (kg) *</Label><Input type="number" step="0.001" min={0} value={item.weight || ""} onChange={(e) => updateLineItem(idx, { weight: parseFloat(e.target.value) || 0 })} /></div>
                       <HsCodeFieldWithAi label="HS 코드 (선택)" value={item.hsCode ?? ""} onChange={(hsCode) => updateLineItem(idx, { hsCode })} onSuggestHsCode={handleAiSuggestHsCode} itemDescription={item.description} />
                       <div className="space-y-2"><Label>제작 국가(원산지)</Label><Select value={item.manufacturerCountry || ""} onValueChange={(v) => updateLineItem(idx, { manufacturerCountry: v || undefined })}><SelectTrigger><SelectValue placeholder="선택" /></SelectTrigger><SelectContent>{COUNTRY_OPTIONS.map((c) => <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>)}</SelectContent></Select></div>

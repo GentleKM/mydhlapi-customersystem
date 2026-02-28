@@ -47,6 +47,10 @@ export interface ReceiverFormData {
   phone: string;
 }
 
+/** 화폐 코드 (ISO 4217) */
+export const CURRENCY_CODES = ["USD", "EUR", "GBP", "JPY", "CNY", "KRW"] as const;
+export type CurrencyCode = (typeof CURRENCY_CODES)[number];
+
 /** 물품 라인 항목 */
 export interface LineItemFormData {
   exportReasonType: ExportReasonType;
@@ -54,6 +58,7 @@ export interface LineItemFormData {
   quantityValue: number;
   quantityUnit: QuantityUnit;
   value: number;
+  valueCurrency: CurrencyCode;
   weight: number;
   hsCode?: string;
   manufacturerCountry?: string;

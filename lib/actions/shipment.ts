@@ -57,6 +57,7 @@ export interface CreateShipmentInput {
     quantityValue: number;
     quantityUnit: string;
     value: number;
+    valueCurrency?: string;
     weight: number;
     hsCode?: string;
     manufacturerCountry?: string;
@@ -238,6 +239,7 @@ export async function createShipment(
       quantity_value: item.quantityValue,
       quantity_unit: item.quantityUnit,
       value: item.value,
+      value_currency: item.valueCurrency || "USD",
       weight_net: item.weight,
       weight_gross: item.weight,
       hs_code: item.hsCode || null,
@@ -314,6 +316,7 @@ export async function updateShipment(
       quantity_value: item.quantityValue,
       quantity_unit: item.quantityUnit,
       value: item.value,
+      value_currency: item.valueCurrency || "USD",
       weight_net: item.weight,
       weight_gross: item.weight,
       hs_code: item.hsCode || null,
@@ -396,6 +399,7 @@ export async function createDhlLabel(
     quantity_value: Number(li.quantity_value) || 1,
     quantity_unit: (li.quantity_unit as string) ?? "PCS",
     value: Number(li.value) || 0,
+    value_currency: (li.value_currency as string) ?? "USD",
     weight_net: Number(li.weight_net ?? li.weight_gross) || 0,
     weight_gross: Number(li.weight_gross ?? li.weight_net) || 0,
     hs_code: (li.hs_code as string) ?? null,

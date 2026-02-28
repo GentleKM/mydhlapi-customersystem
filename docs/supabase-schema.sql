@@ -130,6 +130,7 @@ create table public.shipment_line_item (
   quantity_value integer not null check (quantity_value >= 1 and quantity_value <= 1000000000),
   quantity_unit text not null,
   value numeric(14, 3) not null check (value >= 0),
+  value_currency text not null default 'USD',
   weight_net numeric(14, 3) not null check (weight_net >= 0),
   weight_gross numeric(14, 3) not null check (weight_gross >= 0),
   hs_code text,

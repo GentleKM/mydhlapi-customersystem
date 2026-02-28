@@ -25,6 +25,7 @@ export interface DbShipmentPayload {
     quantity_value: number;
     quantity_unit: string;
     value: number;
+    value_currency?: string;
     weight_net?: number;
     weight_gross?: number;
     hs_code?: string | null;
@@ -151,6 +152,7 @@ export function mapToDhlCreateShipmentRequest(
   if (isGoods) {
     const totalValue = payload.lineItems.reduce((sum, li) => sum + (Number(li.value) || 0), 0);
     const totalWeight = payload.lineItems.reduce((sum, li) => sum + (Number(li.weight_gross ?? li.weight_net) || 0), 0);
+    const primaryCurrency = (payload.lineItems[0]?.value_currency || "USD").slice(0, 3);
 
     const lineItems = payload.lineItems.map((li, idx) => ({
       number: idx + 1,
@@ -173,7 +175,7 @@ export function mapToDhlCreateShipmentRequest(
 
     (base.content as Record<string, unknown>).isCustomsDeclarable = true;
     (base.content as Record<string, unknown>).declaredValue = Math.max(1, totalValue || 10);
-    (base.content as Record<string, unknown>).declaredValueCurrency = "USD";
+    (base.content as Record<string, unknown>).declaredValueCurrency = primaryCurrency;
     (base.content as Record<string, unknown>).exportDeclaration = {
       lineItems,
       invoice: {

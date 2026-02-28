@@ -18,9 +18,11 @@ import { AuthButtons } from "@/components/AuthButtons";
 import { FloatHomeButton } from "@/components/FloatHomeButton";
 import {
   type ContentType,
+  type CurrencyCode,
   type ExportReasonType,
   type LineItemFormData,
   type QuantityUnit,
+  CURRENCY_CODES,
   QUANTITY_UNITS,
 } from "@/lib/shipment-types";
 import {
@@ -48,6 +50,7 @@ const createEmptyLineItem = (): LineItemFormData => ({
   quantityValue: 1,
   quantityUnit: "PCS",
   value: 0,
+  valueCurrency: "USD",
   weight: 0,
   hsCode: "",
   manufacturerCountry: "",
@@ -531,18 +534,40 @@ export default function CreateShipmentPage() {
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label>Value (금액) *</Label>
-                        <Input
-                          type="number"
-                          step="0.001"
-                          min={0}
-                          value={item.value || ""}
-                          onChange={(e) =>
-                            updateLineItem(idx, {
-                              value: parseFloat(e.target.value) || 0,
-                            })
-                          }
-                        />
+                        <Label>물품 금액 *</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            type="number"
+                            step="0.001"
+                            min={0}
+                            className="flex-1"
+                            value={item.value || ""}
+                            onChange={(e) =>
+                              updateLineItem(idx, {
+                                value: parseFloat(e.target.value) || 0,
+                              })
+                            }
+                          />
+                          <Select
+                            value={item.valueCurrency}
+                            onValueChange={(v) =>
+                              updateLineItem(idx, {
+                                valueCurrency: v as CurrencyCode,
+                              })
+                            }
+                          >
+                            <SelectTrigger className="w-[100px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {CURRENCY_CODES.map((c) => (
+                                <SelectItem key={c} value={c}>
+                                  {c}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label>Weight (kg) *</Label>
