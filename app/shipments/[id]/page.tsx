@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 
-import { AuthButtons } from "@/components/AuthButtons";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -110,7 +109,6 @@ export default function ShipmentDetailPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <AuthButtons />
           <Button asChild variant="outline" size="sm">
             <Link href={`/shipments/${id}/edit`}>수정</Link>
           </Button>

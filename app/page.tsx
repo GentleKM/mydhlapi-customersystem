@@ -33,7 +33,7 @@ export default function HomePage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            MyDHL 배송 관리
+            DHL API 배송 시스템
           </h1>
           <p className="text-muted-foreground">
             실시간 배송 현황을 확인하고 운송장을 관리하세요.
