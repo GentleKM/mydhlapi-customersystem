@@ -183,7 +183,6 @@ export function mapToDhlCreateShipmentRequest(
         date: new Date().toISOString().slice(0, 10),
         totalNetWeight: totalWeight || pkg.weight,
         totalGrossWeight: pkg.weight,
-        exportReasonType: "permanent",
       },
       exportReasonType: "permanent",
     };
