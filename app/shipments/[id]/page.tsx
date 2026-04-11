@@ -55,6 +55,9 @@ export default function ShipmentDetailPage() {
         setLabelError(error);
         return;
       }
+      if (awb) {
+        alert("운송장 생성이 완료되었습니다.");
+      }
       const { data: d } = await getShipmentById(id);
       if (d) setData(d);
     } finally {
