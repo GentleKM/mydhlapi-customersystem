@@ -307,6 +307,16 @@ create policy "shipment_history_select_own"
     )
   );
 
+create policy "shipment_history_insert_own"
+  on public.shipment_history for insert
+  with check (
+    exists (
+      select 1 from public.shipment s
+      where s.id = shipment_history.shipment_id
+      and s.user_id = auth.uid()
+    )
+  );
+
 -- shipment 상태 변경 시 히스토리 자동 기록
 create or replace function public.record_shipment_status_change()
 returns trigger as $$

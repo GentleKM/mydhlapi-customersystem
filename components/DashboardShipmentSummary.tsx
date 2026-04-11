@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export type ShipmentDashboardStatus =
@@ -60,11 +60,6 @@ export function DashboardShipmentSummary({
               <Link href={`/shipments?status=${status}`}>{value}</Link>
             </Badge>
           </CardHeader>
-          <CardContent className="pt-0">
-            <p className="text-xs text-muted-foreground">
-              실시간 배송 현황을 한눈에 파악할 수 있습니다.
-            </p>
-          </CardContent>
         </Card>
       ))}
     </section>
