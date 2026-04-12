@@ -2,8 +2,7 @@
 
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
-import Link from "next/link";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Card,
@@ -20,7 +19,7 @@ import type {
   ShipmentFilterStatus,
 } from "@/components/ShipmentFilters";
 import type { ShipmentListItem } from "@/components/ShipmentList";
-import { getShipments } from "@/lib/actions/shipment";
+import { getShipments, syncShipmentTrackingFromDhl } from "@/lib/actions/shipment";
 import { AuthButtons } from "@/components/AuthButtons";
 import { FeaturePageShell } from "@/components/FeaturePageShell";
 
@@ -47,6 +46,8 @@ function ShipmentsPageContent() {
   }));
   const [items, setItems] = useState<ShipmentListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (statusFromUrl && VALID_STATUSES.includes(statusFromUrl as ShipmentFilterStatus)) {
@@ -54,7 +55,7 @@ function ShipmentsPageContent() {
     }
   }, [statusFromUrl]);
 
-  useEffect(() => {
+  const loadShipments = useCallback(() => {
     setIsLoading(true);
     getShipments({
       status: filters.status === "all" ? undefined : filters.status,
@@ -65,6 +66,41 @@ function ShipmentsPageContent() {
       if (error) console.error(error);
     });
   }, [filters.status, filters.destinationCountry]);
+
+  useEffect(() => {
+    loadShipments();
+  }, [loadShipments]);
+
+  const handleSyncTracking = async () => {
+    setSyncNotice(null);
+    setIsSyncing(true);
+    try {
+      const res = await syncShipmentTrackingFromDhl();
+      await loadShipments();
+      if (res.failures.length > 0) {
+        const sample = res.failures
+          .slice(0, 3)
+          .map((f) => `${f.awb}: ${f.message}`)
+          .join(" / ");
+        setSyncNotice(
+          res.updated > 0
+            ? `${res.updated}건 반영했으나 ${res.failures.length}건 실패. ${sample}`
+            : `추적 갱신에 실패했습니다 (${res.failures.length}건). ${sample}`
+        );
+      } else if (res.updated === 0) {
+        setSyncNotice(
+          "갱신된 항목이 없습니다. 운송장 번호가 있거나 추적 응답이 있는지 확인해 주세요."
+        );
+      } else {
+        setSyncNotice(`배송 상태가 갱신되었습니다. (${res.updated}건 반영)`);
+      }
+      if (res.error && res.failures.length > 0) {
+        console.warn(res.error, res.failures);
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleRowClick = (item: ShipmentListItem) => {
     router.push(`/shipments/${item.id}`);
@@ -104,12 +140,22 @@ function ShipmentsPageContent() {
         onChange={setFilters}
       />
 
+      {syncNotice && (
+        <p className="text-sm text-muted-foreground" role="status">
+          {syncNotice}
+        </p>
+      )}
+
       <Card className="bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-base">운송장 목록</CardTitle>
           <CardAction>
-            <Button asChild>
-              <Link href="/shipments/create">새 운송장 만들기</Link>
+            <Button
+              type="button"
+              disabled={isSyncing || isLoading}
+              onClick={() => void handleSyncTracking()}
+            >
+              {isSyncing ? "상태 동기화 중..." : "상태 업데이트"}
             </Button>
           </CardAction>
         </CardHeader>

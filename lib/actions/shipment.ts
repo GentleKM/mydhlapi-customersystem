@@ -9,6 +9,13 @@ import { createClient } from "@/lib/supabase/server";
 import type { ContentType } from "@/lib/shipment-types";
 import { mapToDhlCreateShipmentRequest } from "@/lib/dhl/mapper";
 import { createDhlShipment } from "@/lib/dhl/client";
+import { dhlGetJson } from "@/lib/dhl/rates-api";
+import {
+  mapDhlTrackingToShipmentStatus,
+  parseEstimatedDeliveryToIso,
+  shouldAdvanceStatus,
+  type DhlTrackingShipment,
+} from "@/lib/dhl/tracking-map";
 
 export type ShipmentStatus =
   | "draft"
@@ -22,6 +29,8 @@ export interface ShipmentListItem {
   destinationCountry: string;
   status: ShipmentStatus;
   createdAt: string;
+  /** DHL tracking `estimatedDeliveryDate` 반영(없으면 미표시). */
+  estimatedDeliveryAt?: string | null;
 }
 
 export interface ShipmentStats {
@@ -118,7 +127,9 @@ export async function getShipments(filters?: {
 
   let query = supabase
     .from("shipment")
-    .select("id, airway_bill_number, receiver_country, status, created_at")
+    .select(
+      "id, airway_bill_number, receiver_country, status, created_at, estimated_delivery_at"
+    )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -142,9 +153,161 @@ export async function getShipments(filters?: {
     destinationCountry: row.receiver_country,
     status: row.status as ShipmentStatus,
     createdAt: row.created_at,
+    estimatedDeliveryAt: row.estimated_delivery_at ?? null,
   }));
 
   return { data: items, error: null };
+}
+
+const TRACKING_PATH =
+  "/tracking?trackingView=shipment-details-only&levelOfDetail=all";
+
+const DHL_TRACKING_DELAY_MS = 400;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+type TrackingApiResponse = { shipments?: DhlTrackingShipment[] };
+
+/**
+ * 목록에 있는 운송장 번호로 MyDHL tracking API를 호출해 상태·예상 배송일을 갱신합니다.
+ * 짧은 간격으로 연속 호출되지 않도록 건별 지연을 둡니다.
+ */
+export async function syncShipmentTrackingFromDhl(): Promise<{
+  ok: boolean;
+  error: string | null;
+  updated: number;
+  skipped: number;
+  failures: Array<{ awb: string; message: string }>;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.id) {
+    return {
+      ok: false,
+      error: "로그인이 필요합니다.",
+      updated: 0,
+      skipped: 0,
+      failures: [],
+    };
+  }
+
+  const baseUrl = process.env.DHL_BASE_URL;
+  const clientId = process.env.DHL_CLIENT_ID;
+  const clientSecret = process.env.DHL_CLIENT_SECRET;
+  if (!baseUrl || !clientId || !clientSecret) {
+    return {
+      ok: false,
+      error: "DHL API 설정이 완료되지 않았습니다.",
+      updated: 0,
+      skipped: 0,
+      failures: [],
+    };
+  }
+
+  const { data: rows, error: listError } = await supabase
+    .from("shipment")
+    .select("id, airway_bill_number, status")
+    .eq("user_id", user.id)
+    .not("airway_bill_number", "is", null);
+
+  if (listError) {
+    return {
+      ok: false,
+      error: listError.message,
+      updated: 0,
+      skipped: 0,
+      failures: [],
+    };
+  }
+
+  let updated = 0;
+  let skipped = 0;
+  const failures: Array<{ awb: string; message: string }> = [];
+
+  const list = (rows ?? []) as Array<{
+    id: string;
+    airway_bill_number: string | null;
+    status: string;
+  }>;
+
+  for (let i = 0; i < list.length; i++) {
+    const row = list[i];
+    const awb = String(row.airway_bill_number ?? "").trim();
+    if (!awb) {
+      skipped++;
+      continue;
+    }
+    if (i > 0) await sleep(DHL_TRACKING_DELAY_MS);
+
+    const path = `/shipments/${encodeURIComponent(awb)}${TRACKING_PATH}`;
+    const { data, error } = await dhlGetJson<TrackingApiResponse>(
+      baseUrl,
+      clientId,
+      clientSecret,
+      path
+    );
+
+    if (error) {
+      failures.push({ awb, message: error });
+      continue;
+    }
+
+    const ship = data?.shipments?.[0];
+    if (!ship) {
+      skipped++;
+      continue;
+    }
+
+    const inferred = mapDhlTrackingToShipmentStatus(ship);
+    const estIso = parseEstimatedDeliveryToIso(ship.estimatedDeliveryDate);
+
+    const current = row.status as ShipmentStatus;
+    const updates: Record<string, unknown> = {};
+
+    if (estIso) {
+      updates.estimated_delivery_at = estIso;
+    }
+
+    if (
+      inferred &&
+      shouldAdvanceStatus(current, inferred) &&
+      inferred !== current
+    ) {
+      updates.status = inferred;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      skipped++;
+      continue;
+    }
+
+    const { error: upErr } = await supabase
+      .from("shipment")
+      .update(updates)
+      .eq("id", row.id)
+      .eq("user_id", user.id);
+
+    if (upErr) {
+      failures.push({ awb, message: upErr.message });
+      continue;
+    }
+    updated++;
+  }
+
+  return {
+    ok: failures.length === 0,
+    error:
+      failures.length > 0
+        ? `${failures.length}건의 추적 갱신에 실패했습니다.`
+        : null,
+    updated,
+    skipped,
+    failures,
+  };
 }
 
 /** 운송장 상세를 조회합니다 (line_items, package 포함). */

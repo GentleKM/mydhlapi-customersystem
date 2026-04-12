@@ -105,6 +105,7 @@ create table public.shipment (
   -- 기타
   airway_bill_number text,
   status public.shipment_status not null default 'draft',
+  estimated_delivery_at timestamptz,
   pickup_id uuid,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

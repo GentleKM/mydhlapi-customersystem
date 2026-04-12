@@ -10,6 +10,44 @@ export interface DhlJsonError {
   [key: string]: unknown;
 }
 
+/** Basic Auth로 JSON GET 후 파싱 결과를 반환합니다 (tracking 등). */
+export async function dhlGetJson<T = unknown>(
+  baseUrl: string,
+  clientId: string,
+  clientSecret: string,
+  path: string
+): Promise<{ data: T | null; error: string | null }> {
+  const url = `${baseUrl.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
+  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
+  const messageRef = `mydhl-get-${Date.now()}`;
+
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Basic ${auth}`,
+        "Message-Reference": messageRef,
+        "Message-Reference-Date": new Date().toISOString(),
+      },
+    });
+
+    const json = (await res.json().catch(() => ({}))) as T | DhlJsonError;
+
+    if (!res.ok) {
+      const err = json as DhlJsonError;
+      const detail =
+        err.detail || err.message || err.title || `HTTP ${res.status}`;
+      return { data: null, error: String(detail) };
+    }
+
+    return { data: json as T, error: null };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "알 수 없는 오류";
+    return { data: null, error: `DHL API 호출 오류: ${msg}` };
+  }
+}
+
 /** Basic Auth로 JSON POST 후 파싱 결과를 반환합니다. */
 export async function dhlPostJson<T = unknown>(
   baseUrl: string,

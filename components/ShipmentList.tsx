@@ -1,6 +1,5 @@
 // 운송장 목록과 기본 정보를 표 형태로 보여주는 컴포넌트입니다.
 
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -27,6 +26,8 @@ export interface ShipmentListItem {
   status: ShipmentStatus;
   /** 생성일 ISO 문자열입니다. */
   createdAt: string;
+  /** 예상 배송일시(ISO, DHL tracking 반영). */
+  estimatedDeliveryAt?: string | null;
 }
 
 export interface ShipmentListProps {
@@ -38,21 +39,11 @@ export interface ShipmentListProps {
   emptyMessage?: string;
 }
 
-const STATUS_BADGE_LABEL: Record<ShipmentStatus, string> = {
+const STATUS_LABEL: Record<ShipmentStatus, string> = {
   draft: "작성 중",
   label_created: "운송장 생성 완료",
   pickup_completed: "픽업 완료",
   delivered: "배송 완료",
-};
-
-const STATUS_BADGE_VARIANT: Record<
-  ShipmentStatus,
-  "secondary" | "default" | "outline" | "ghost"
-> = {
-  draft: "secondary",
-  label_created: "default",
-  pickup_completed: "outline",
-  delivered: "ghost",
 };
 
 /** PRD의 운송장 조회 페이지에서 사용할 리스트 테이블 UI를 구현한 컴포넌트입니다. */
@@ -74,10 +65,13 @@ export function ShipmentList({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[160px]">운송장 번호</TableHead>
-            <TableHead>도착지 국가</TableHead>
-            <TableHead>상태</TableHead>
-            <TableHead className="text-right">생성일</TableHead>
+            <TableHead className="w-[160px] text-center">
+              운송장 번호
+            </TableHead>
+            <TableHead className="text-center">도착지 국가</TableHead>
+            <TableHead className="text-center">상태</TableHead>
+            <TableHead className="text-center">예상 배송일</TableHead>
+            <TableHead className="text-center">생성일</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -92,16 +86,23 @@ export function ShipmentList({
                   clickable ? () => onRowClick && onRowClick(item) : undefined
                 }
               >
-                <TableCell className="font-mono text-xs">
+                <TableCell className="text-center font-mono text-xs text-foreground">
                   {item.airwayBillNumber ?? "미발급"}
                 </TableCell>
-                <TableCell>{item.destinationCountry}</TableCell>
-                <TableCell>
-                  <Badge variant={STATUS_BADGE_VARIANT[item.status]}>
-                    {STATUS_BADGE_LABEL[item.status]}
-                  </Badge>
+                <TableCell className="text-center text-foreground">
+                  {item.destinationCountry}
                 </TableCell>
-                <TableCell className="text-right text-xs text-muted-foreground">
+                <TableCell className="text-center text-sm text-foreground">
+                  {STATUS_LABEL[item.status]}
+                </TableCell>
+                <TableCell className="text-center text-xs text-foreground">
+                  {item.estimatedDeliveryAt
+                    ? new Date(item.estimatedDeliveryAt).toLocaleDateString(
+                        "ko-KR"
+                      )
+                    : "—"}
+                </TableCell>
+                <TableCell className="text-center text-xs text-muted-foreground">
                   {new Date(item.createdAt).toLocaleString()}
                 </TableCell>
               </TableRow>
