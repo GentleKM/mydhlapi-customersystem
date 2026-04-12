@@ -76,7 +76,7 @@ export default function LoginPage() {
               해외 배송하기 (DHL Express)
             </h1>
             <p className="text-sm text-muted-foreground">
-              승인 받은 사용자만 운송장 생성 및 픽업 요청이 가능합니다.
+              승인된 사용자만 운송장 생성 및 픽업 요청이 가능합니다.
             </p>
           </div>
 

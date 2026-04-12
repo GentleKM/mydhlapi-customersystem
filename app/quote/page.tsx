@@ -244,7 +244,7 @@ export default function QuotePage() {
             견적 조회
           </h1>
           <p className="text-muted-foreground">
-            예상 운임 및 Landed Cost 조회하기
+            DHL 예상 운임 및 Landed Cost 조회하기
           </p>
         </div>
         <AuthButtons />

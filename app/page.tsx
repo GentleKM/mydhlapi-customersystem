@@ -40,7 +40,7 @@ export default function HomePage() {
             DHL Express
           </h1>
           <p className="text-muted-foreground">
-            실시간 배송 현황을 확인하고 운송장을 관리하세요.
+            승인된 사용자만 운송장 생성 및 픽업 요청이 가능합니다.
           </p>
         </div>
         <AuthButtons />
@@ -76,10 +76,10 @@ export default function HomePage() {
             <Link href="/quote">견적 조회하기</Link>
           </Button>
           <Button asChild size="lg" className={homeActionButtonClassName}>
-            <Link href="/shipments/create">운송장 만들기</Link>
+            <Link href="/shipments/create">운송장 생성하기</Link>
           </Button>
           <Button asChild size="lg" className={homeActionButtonClassName}>
-            <Link href="/shipments">운송장 목록 보기</Link>
+            <Link href="/shipments">운송장 조회하기</Link>
           </Button>
           <Button asChild size="lg" className={homeActionButtonClassName}>
             <Link href="/pickup">픽업 요청하기</Link>

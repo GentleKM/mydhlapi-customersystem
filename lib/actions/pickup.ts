@@ -186,7 +186,7 @@ export async function submitPickupRequest(
   if (!approved) {
     return {
       ok: false,
-      error: "승인 받은 사용자만 픽업 요청을 할 수 있습니다.",
+      error: "승인된 사용자만 픽업 요청을 할 수 있습니다.",
       dispatchConfirmationNumbers: null,
       pickupId: null,
     };

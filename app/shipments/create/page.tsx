@@ -132,7 +132,7 @@ export default function CreateShipmentPage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!isApproved) {
-      alert("승인 받은 사용자만 운송장을 생성할 수 있습니다.");
+      alert("승인된 사용자만 운송장을 생성할 수 있습니다.");
       return;
     }
 
@@ -179,7 +179,7 @@ export default function CreateShipmentPage() {
       {!isApproved && (
         <Alert className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950">
           <p className="col-start-2 col-span-1 text-sm text-yellow-900 dark:text-yellow-100">
-            승인 받은 사용자만 운송장 생성 및 픽업 요청이 가능합니다.
+            승인된 사용자만 운송장 생성 및 픽업 요청이 가능합니다.
           </p>
         </Alert>
       )}

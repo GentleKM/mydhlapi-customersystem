@@ -141,7 +141,7 @@ function ShipmentsPageContent() {
       />
 
       {syncNotice && (
-        <p className="text-sm text-muted-foreground" role="status">
+        <p className="text-center text-sm text-muted-foreground" role="status">
           {syncNotice}
         </p>
       )}
