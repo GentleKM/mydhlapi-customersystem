@@ -170,7 +170,7 @@ export default function CreateShipmentPage() {
             운송장 생성
           </h1>
           <p className="text-muted-foreground">
-            필수 정보를 입력하여 새로운 운송장을 생성하세요.
+            DHL 운송장 생성하기
           </p>
         </div>
         <AuthButtons />

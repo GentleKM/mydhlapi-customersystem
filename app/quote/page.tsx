@@ -39,7 +39,7 @@ const COUNTRY_OPTIONS = [
 
 const CURRENCY_OPTIONS = ["KRW", "USD", "EUR", "JPY", "GBP", "AUD"] as const;
 
-/** PRD: 견적 및 Landed Cost 조회 UI입니다. */
+/** PRD: 견적·Landed Cost 조회 UI입니다. */
 export default function QuotePage() {
   const [originCountry, setOriginCountry] = useState("");
   const [originPostalCode, setOriginPostalCode] = useState("");
@@ -57,7 +57,6 @@ export default function QuotePage() {
   const [declaredValue, setDeclaredValue] = useState("");
   const [declaredCurrency, setDeclaredCurrency] = useState("USD");
 
-  const [landedCurrencyCode, setLandedCurrencyCode] = useState("KRW");
   const [itemName, setItemName] = useState("");
   const [itemDescription, setItemDescription] = useState("");
   const [manufacturerCountry, setManufacturerCountry] = useState("");
@@ -177,7 +176,6 @@ export default function QuotePage() {
   const handleLanded = async () => {
     const missing = validateCommonMessages();
     const landedMissing: string[] = [];
-    if (!landedCurrencyCode.trim()) landedMissing.push("통화");
     if (!itemName.trim()) landedMissing.push("품목명");
     if (!itemDescription.trim()) landedMissing.push("품목 설명");
     if (!manufacturerCountry) landedMissing.push("제조 국가");
@@ -189,7 +187,7 @@ export default function QuotePage() {
     if (!unitPrice.trim() || Number.isNaN(up) || up < 0) {
       landedMissing.push("품목 단가");
     }
-    if (!unitPriceCurrency.trim()) landedMissing.push("품목 단가 통화");
+    if (!unitPriceCurrency.trim()) landedMissing.push("통화");
     if (!commodityCode.trim()) landedMissing.push("HS 코드(품목)");
     const iw = parseFloat(itemWeightKg);
     if (!itemWeightKg.trim() || Number.isNaN(iw) || iw <= 0) {
@@ -216,7 +214,7 @@ export default function QuotePage() {
           ? parseFloat(declaredValue)
           : undefined,
         declaredCurrency: isCustomsDeclarable ? declaredCurrency : undefined,
-        currencyCode: landedCurrencyCode,
+        currencyCode: unitPriceCurrency,
         itemName: itemName.trim(),
         itemDescription: itemDescription.trim(),
         manufacturerCountry,
@@ -243,10 +241,10 @@ export default function QuotePage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            견적 및 Landed Cost 조회
+            견적 조회
           </h1>
           <p className="text-muted-foreground">
-            목적지별 운임 견적을 산출하고 발송 가능 지역 여부를 확인하세요.
+            예상 운임 및 Landed Cost 조회하기
           </p>
         </div>
         <AuthButtons />
@@ -349,13 +347,14 @@ export default function QuotePage() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-            <div className="space-y-1.5">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+            <div className="space-y-1.5 min-w-0 flex flex-col">
               <Label htmlFor="weight">
                 무게 (kg) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="weight"
+                className="w-full"
                 type="number"
                 step="0.001"
                 min={0.001}
@@ -364,12 +363,28 @@ export default function QuotePage() {
                 onChange={(e) => setWeight(e.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0 flex flex-col">
+              <Label htmlFor="planned-date">
+                발송 예정일 <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="planned-date"
+                className="w-full"
+                type="date"
+                value={plannedDate}
+                onChange={(e) => setPlannedDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+            <div className="space-y-1.5 min-w-0 flex flex-col">
               <Label htmlFor="len">
                 가로 (cm) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="len"
+                className="w-full"
                 type="number"
                 step="0.001"
                 min={1}
@@ -377,12 +392,13 @@ export default function QuotePage() {
                 onChange={(e) => setLengthCm(e.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0 flex flex-col">
               <Label htmlFor="wid">
                 세로 (cm) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="wid"
+                className="w-full"
                 type="number"
                 step="0.001"
                 min={1}
@@ -390,12 +406,13 @@ export default function QuotePage() {
                 onChange={(e) => setWidthCm(e.target.value)}
               />
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0 flex flex-col">
               <Label htmlFor="hei">
                 높이 (cm) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="hei"
+                className="w-full"
                 type="number"
                 step="0.001"
                 min={1}
@@ -403,18 +420,6 @@ export default function QuotePage() {
                 onChange={(e) => setHeightCm(e.target.value)}
               />
             </div>
-          </div>
-
-          <div className="space-y-1.5 max-w-md">
-            <Label htmlFor="planned-date">
-              발송 예정일 <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="planned-date"
-              type="date"
-              value={plannedDate}
-              onChange={(e) => setPlannedDate(e.target.value)}
-            />
           </div>
 
           <div className="rounded-lg border border-border p-4 space-y-3">
@@ -464,27 +469,29 @@ export default function QuotePage() {
             )}
           </div>
 
-          <div className="rounded-lg border border-border p-4 space-y-3">
-            <p className="text-sm font-medium">Landed Cost 조회</p>
-            <div className="grid gap-4 grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,5fr)]">
+          <div className="rounded-lg border border-border p-4 space-y-4">
+            <CardTitle className="text-base">Landed Cost 조회</CardTitle>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <div className="space-y-1.5 min-w-0 flex flex-col">
-                <Label>통화</Label>
-                <Select
-                  value={landedCurrencyCode}
-                  onValueChange={setLandedCurrencyCode}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CURRENCY_OPTIONS.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="iname">품목명</Label>
+                <Input
+                  id="iname"
+                  className="w-full"
+                  value={itemName}
+                  onChange={(e) => setItemName(e.target.value)}
+                />
               </div>
+              <div className="space-y-1.5 min-w-0 flex flex-col">
+                <Label htmlFor="idesc">품목 설명</Label>
+                <Input
+                  id="idesc"
+                  className="w-full"
+                  value={itemDescription}
+                  onChange={(e) => setItemDescription(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
               <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="mfg">제조 국가</Label>
                 <Select
@@ -504,28 +511,10 @@ export default function QuotePage() {
                 </Select>
               </div>
               <div className="space-y-1.5 min-w-0 flex flex-col">
-                <Label htmlFor="iname">품목명</Label>
-                <Input
-                  id="iname"
-                  className="w-full"
-                  value={itemName}
-                  onChange={(e) => setItemName(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5 md:col-span-2">
-                <Label htmlFor="idesc">품목 설명</Label>
-                <Input
-                  id="idesc"
-                  value={itemDescription}
-                  onChange={(e) => setItemDescription(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
                 <Label htmlFor="iqty">품목 수량</Label>
                 <Input
                   id="iqty"
+                  className="w-full"
                   type="number"
                   min={1}
                   step="1"
@@ -533,19 +522,23 @@ export default function QuotePage() {
                   onChange={(e) => setItemQuantity(e.target.value)}
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="hs">HS 코드 (품목)</Label>
                 <Input
                   id="hs"
+                  className="w-full"
                   placeholder="숫자만"
                   value={commodityCode}
                   onChange={(e) => setCommodityCode(e.target.value)}
                 />
               </div>
-              <div className="space-y-1.5">
+            </div>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="up">품목 단가</Label>
                 <Input
                   id="up"
+                  className="w-full"
                   type="number"
                   step="0.01"
                   min={0}
@@ -553,13 +546,13 @@ export default function QuotePage() {
                   onChange={(e) => setUnitPrice(e.target.value)}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label>품목 단가 통화</Label>
+              <div className="space-y-1.5 min-w-0 flex flex-col">
+                <Label>통화</Label>
                 <Select
                   value={unitPriceCurrency}
                   onValueChange={setUnitPriceCurrency}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -571,10 +564,11 @@ export default function QuotePage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="iw">품목 무게 (kg)</Label>
                 <Input
                   id="iw"
+                  className="w-full"
                   type="number"
                   step="0.001"
                   min={0.001}

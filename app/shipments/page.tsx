@@ -92,7 +92,7 @@ function ShipmentsPageContent() {
             운송장 조회
           </h1>
           <p className="text-muted-foreground">
-            생성된 운송장 목록을 확인하고 상세 정보를 조회하세요.
+            DHL 운송장 조회하기
           </p>
         </div>
         <AuthButtons />

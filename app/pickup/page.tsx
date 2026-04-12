@@ -66,7 +66,7 @@ export default function PickupPage() {
               픽업 요청
             </h1>
             <p className="text-muted-foreground">
-              DHL Express 픽업 예약(POST /pickups)에 필요한 정보를 입력하세요.
+              DHL Express 픽업 예약하기
             </p>
           </div>
           <AuthButtons />

@@ -174,8 +174,8 @@ export function PickupRequestForm({
           <Separator />
 
           <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground">
-              발송인(픽업지) — shipperDetails
+            <h3 className="text-base font-semibold text-foreground">
+              발송인
             </h3>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
               <div className="space-y-1.5 min-w-0 flex flex-col">
@@ -288,8 +288,8 @@ export function PickupRequestForm({
           <Separator />
 
           <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground">
-              수취인 — receiverDetails
+            <h3 className="text-base font-semibold text-foreground">
+              수취인
             </h3>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
               <div className="space-y-1.5 min-w-0 flex flex-col">
