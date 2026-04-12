@@ -134,9 +134,6 @@ function buildPickupRequestBody(
   if (specialInstructions) {
     body.specialInstructions = specialInstructions;
   }
-  if (input.remark?.trim()) {
-    body.remark = input.remark.trim();
-  }
 
   return body;
 }
@@ -247,7 +244,7 @@ export async function submitPickupRequest(
     address: addressSummary,
     contact_number: input.shipperPhone.trim(),
     pickup_date: input.pickupDate,
-    note: input.remark?.trim() || input.specialInstruction?.trim() || null,
+    note: input.specialInstruction?.trim() || null,
     status: errMsg ? "requested" : "scheduled",
     request_payload: body as object,
     response_payload: (apiData ?? null) as object | null,

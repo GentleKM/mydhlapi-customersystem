@@ -12,7 +12,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import type { PickupFormInput } from "@/lib/validations/pickup";
 
 const COUNTRY_OPTIONS = [
@@ -78,7 +77,6 @@ export const DEFAULT_PICKUP_FORM_VALUE: PickupRequestFormValue = {
   packageWidth: "",
   packageHeight: "",
   specialInstruction: "",
-  remark: "",
 };
 
 export interface PickupRequestFormProps {
@@ -111,17 +109,10 @@ export function PickupRequestForm({
     <Card className="w-full bg-card/80 backdrop-blur-sm">
       <CardHeader>
         <CardTitle className="text-base">픽업 요청 정보</CardTitle>
-        <p className="text-sm text-muted-foreground font-normal">
-          MyDHL <code className="text-xs">POST /pickups</code> — 발송인·수취인·
-          화물(shipmentDetails) 필드를 포함합니다.
-        </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-8">
           <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground">
-              픽업 일시·장소
-            </h3>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
               <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="p-date">픽업 예정일 *</Label>
@@ -402,9 +393,7 @@ export function PickupRequestForm({
           <Separator />
 
           <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground">
-              화물 — shipmentDetails[0]
-            </h3>
+            <h3 className="text-sm font-semibold text-foreground">발송물</h3>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
               <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label>발송물 종류 *</Label>
@@ -513,9 +502,7 @@ export function PickupRequestForm({
           <Separator />
 
           <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground">
-              특이사항 — specialInstructions / 비고
-            </h3>
+            <h3 className="text-sm font-semibold text-foreground">특이사항</h3>
             <div className="space-y-1.5">
               <Label htmlFor="p-si">픽업 시 특이사항 (선택, 최대 80자)</Label>
               <Input
@@ -524,16 +511,6 @@ export function PickupRequestForm({
                 onChange={(e) => set("specialInstruction", e.target.value)}
                 maxLength={80}
                 placeholder="예: please ring door bell"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="p-rm">비고 (선택)</Label>
-              <Textarea
-                id="p-rm"
-                value={value.remark ?? ""}
-                onChange={(e) => set("remark", e.target.value)}
-                rows={2}
-                placeholder="예: two parcels required pickup"
               />
             </div>
           </section>

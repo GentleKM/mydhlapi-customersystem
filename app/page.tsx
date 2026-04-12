@@ -8,7 +8,6 @@ import Link from "next/link";
 import { AuthButtons } from "@/components/AuthButtons";
 import { FeaturePageShell } from "@/components/FeaturePageShell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { DashboardShipmentSummary } from "@/components/DashboardShipmentSummary";
 import { getShipmentStats } from "@/lib/actions/shipment";
 import type { ShipmentStats } from "@/lib/actions/shipment";
@@ -19,6 +18,10 @@ const EMPTY_STATS: ShipmentStats = {
   pickup_completed: 0,
   delivered: 0,
 };
+
+/** 메인 화면 주요 메뉴 버튼: 키 큰 터치 영역·강조 타이포·미세 호버 피드백 */
+const homeActionButtonClassName =
+  "h-auto min-h-14 w-full rounded-xl px-5 py-3.5 text-base font-semibold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 sm:min-h-[3.75rem] sm:py-4 sm:text-lg";
 
 /** PRD에 정의된 메인 화면: 배송 현황 대시보드 및 주요 메뉴(견적, 생성, 조회, 픽업) 바로가기 버튼을 제공합니다. */
 export default function HomePage() {
@@ -66,40 +69,21 @@ export default function HomePage() {
         <DashboardShipmentSummary stats={stats} />
       </section>
 
-      {/* 주요 메뉴: 카드·버튼만 표시 */}
-      <section>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="bg-card/80 backdrop-blur-sm transition hover:bg-card hover:shadow-md">
-            <CardContent className="p-6">
-              <Button asChild className="w-full" variant="default">
-                <Link href="/quote">견적 조회하기</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/80 backdrop-blur-sm transition hover:bg-card hover:shadow-md">
-            <CardContent className="p-6">
-              <Button asChild className="w-full" variant="default">
-                <Link href="/shipments/create">운송장 만들기</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/80 backdrop-blur-sm transition hover:bg-card hover:shadow-md">
-            <CardContent className="p-6">
-              <Button asChild className="w-full" variant="default">
-                <Link href="/shipments">운송장 목록 보기</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/80 backdrop-blur-sm transition hover:bg-card hover:shadow-md">
-            <CardContent className="p-6">
-              <Button asChild className="w-full" variant="default">
-                <Link href="/pickup">픽업 요청하기</Link>
-              </Button>
-            </CardContent>
-          </Card>
+      {/* 주요 메뉴: 배경 위에 직접 배치되는 큰 버튼 그리드 */}
+      <section aria-label="주요 메뉴">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Button asChild size="lg" className={homeActionButtonClassName}>
+            <Link href="/quote">견적 조회하기</Link>
+          </Button>
+          <Button asChild size="lg" className={homeActionButtonClassName}>
+            <Link href="/shipments/create">운송장 만들기</Link>
+          </Button>
+          <Button asChild size="lg" className={homeActionButtonClassName}>
+            <Link href="/shipments">운송장 목록 보기</Link>
+          </Button>
+          <Button asChild size="lg" className={homeActionButtonClassName}>
+            <Link href="/pickup">픽업 요청하기</Link>
+          </Button>
         </div>
       </section>
     </main>

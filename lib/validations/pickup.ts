@@ -45,7 +45,6 @@ export const pickupFormSchema = z.object({
   packageWidth: z.coerce.number().min(1),
   packageHeight: z.coerce.number().min(1),
   specialInstruction: z.string().max(80).optional(),
-  remark: z.string().optional(),
 });
 
 export type PickupFormInput = z.infer<typeof pickupFormSchema>;
