@@ -3,10 +3,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Package, FileText, Search, Truck } from "lucide-react";
 
 import { AuthButtons } from "@/components/AuthButtons";
+import { FeaturePageShell } from "@/components/FeaturePageShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardShipmentSummary } from "@/components/DashboardShipmentSummary";
@@ -29,7 +31,25 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className="container mx-auto px-4 py-8 space-y-8">
+    <FeaturePageShell>
+    <main className="w-full space-y-8">
+      {/* 히어로: DHL API 연동 포털 일러스트 */}
+      <section
+        className="relative w-full overflow-hidden rounded-2xl border border-border/60 bg-muted/30 shadow-sm ring-1 ring-black/[0.04] dark:ring-white/10"
+        aria-hidden
+      >
+        <div className="relative aspect-[16/10] w-full max-h-[min(280px,40vh)] sm:aspect-[2/1] sm:max-h-[min(340px,45vh)] md:max-h-[min(400px,50vh)] lg:aspect-[21/9]">
+          <Image
+            src="/hero-dhl-api-portal.png"
+            alt=""
+            fill
+            priority
+            className="object-cover object-center"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1152px"
+          />
+        </div>
+      </section>
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
@@ -122,5 +142,6 @@ export default function HomePage() {
         </div>
       </section>
     </main>
+    </FeaturePageShell>
   );
 }

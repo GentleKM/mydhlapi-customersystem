@@ -1,6 +1,6 @@
 "use client";
 
-// 메인이 아닌 기능 화면 좌측에 표시되는 주요 메뉴 바로가기입니다.
+// 메인·기능 화면 좌측(모바일: 상단 가로) 주요 메뉴 바로가기입니다.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
