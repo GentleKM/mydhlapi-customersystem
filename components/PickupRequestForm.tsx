@@ -1,45 +1,114 @@
-// 픽업 예약 전용 화면에서 사용할 기본 픽업 요청 폼 컴포넌트입니다.
+// MyDHL POST /pickups 스키마에 맞춘 픽업 요청 폼입니다.
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  PICKUP_PACKAGE_TYPE_CODES,
+  type PickupFormInput,
+} from "@/lib/validations/pickup";
 
-export interface PickupRequestFormValue {
-  /** 픽업을 요청하는 고객사 이름입니다. */
-  accountName: string;
-  /** 픽업 주소입니다. */
-  address: string;
-  /** 연락처(전화번호)입니다. */
-  contactNumber: string;
-  /** 희망 픽업 일자입니다. */
-  pickupDate: string;
-  /** 비고/추가 요청사항입니다. */
-  note?: string;
-}
+const COUNTRY_OPTIONS = [
+  { code: "KR", name: "대한민국" },
+  { code: "US", name: "미국" },
+  { code: "JP", name: "일본" },
+  { code: "CN", name: "중국" },
+  { code: "GB", name: "영국" },
+  { code: "DE", name: "독일" },
+  { code: "FR", name: "프랑스" },
+  { code: "SG", name: "싱가포르" },
+  { code: "AU", name: "호주" },
+  { code: "CA", name: "캐나다" },
+] as const;
+
+type NumericStringKeys =
+  | "declaredValue"
+  | "packageWeight"
+  | "packageLength"
+  | "packageWidth"
+  | "packageHeight";
+
+/** 폼 상태: 숫자 필드는 문자열로 편집합니다. */
+export type PickupRequestFormValue = Omit<
+  PickupFormInput,
+  NumericStringKeys
+> & {
+  declaredValue: string;
+  packageWeight: string;
+  packageLength: string;
+  packageWidth: string;
+  packageHeight: string;
+};
+
+export const DEFAULT_PICKUP_FORM_VALUE: PickupRequestFormValue = {
+  pickupDate: "",
+  pickupTime: "09:00",
+  closeTime: "18:00",
+  location: "reception",
+  locationType: "business",
+  shipperPostalCode: "",
+  shipperCityName: "",
+  shipperCountryCode: "KR",
+  shipperAddressLine1: "",
+  shipperAddressLine2: "",
+  shipperPhone: "",
+  shipperMobilePhone: "",
+  shipperEmail: "",
+  shipperCompanyName: "",
+  shipperFullName: "",
+  receiverPostalCode: "",
+  receiverCityName: "",
+  receiverCountryCode: "US",
+  receiverAddressLine1: "",
+  receiverAddressLine2: "",
+  receiverCountyName: "",
+  receiverPhone: "",
+  receiverMobilePhone: "",
+  receiverEmail: "",
+  receiverCompanyName: "",
+  receiverFullName: "",
+  productCode: "P",
+  packageTypeCode: "3BX",
+  isCustomsDeclarable: false,
+  declaredValue: "0",
+  declaredValueCurrency: "EUR",
+  unitOfMeasurement: "metric",
+  packageWeight: "",
+  packageLength: "",
+  packageWidth: "",
+  packageHeight: "",
+  specialInstruction: "",
+  remark: "",
+};
 
 export interface PickupRequestFormProps {
-  /** 현재 폼 값입니다. (상위 상태와 연결됩니다.) */
   value: PickupRequestFormValue;
-  /** 폼 값이 변경될 때 호출되는 콜백입니다. */
   onChange: (next: PickupRequestFormValue) => void;
-  /** 폼 제출 시 호출되는 콜백입니다. */
   onSubmit?: () => void;
-  /** 제출 진행 중 상태입니다. */
   isSubmitting?: boolean;
 }
 
-/** PRD의 픽업 요청 전용 페이지에서 사용할 공통 픽업 폼 UI 컴포넌트입니다. */
+/** Swagger `nonDocRequestPickup` 및 RTF 샘플 구조에 대응하는 픽업 입력 UI입니다. */
 export function PickupRequestForm({
   value,
   onChange,
   onSubmit,
   isSubmitting,
 }: PickupRequestFormProps) {
-  const handleFieldChange = <K extends keyof PickupRequestFormValue>(
+  const set = <K extends keyof PickupRequestFormValue>(
     key: K,
-    next: PickupRequestFormValue[K],
+    next: PickupRequestFormValue[K]
   ) => {
     onChange({ ...value, [key]: next });
   };
@@ -53,72 +122,505 @@ export function PickupRequestForm({
     <Card className="w-full bg-card/80 backdrop-blur-sm">
       <CardHeader>
         <CardTitle className="text-base">픽업 요청 정보</CardTitle>
+        <p className="text-sm text-muted-foreground font-normal">
+          MyDHL <code className="text-xs">POST /pickups</code> — 발송인·수취인·
+          화물(shipmentDetails) 필드를 포함합니다.
+        </p>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="pickup-account-name">고객사명</Label>
-            <Input
-              id="pickup-account-name"
-              value={value.accountName}
-              onChange={(event) =>
-                handleFieldChange("accountName", event.target.value)
-              }
-              required
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="pickup-address">픽업 주소</Label>
-            <Textarea
-              id="pickup-address"
-              value={value.address}
-              onChange={(event) =>
-                handleFieldChange("address", event.target.value)
-              }
-              rows={2}
-              required
-            />
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="pickup-contact-number">연락처</Label>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <section className="space-y-4">
+            <h3 className="text-sm font-semibold text-foreground">
+              픽업 일시·장소
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="p-date">픽업 예정일 *</Label>
+                <Input
+                  id="p-date"
+                  type="date"
+                  value={value.pickupDate}
+                  onChange={(e) => set("pickupDate", e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="p-time">픽업 예정 시각 (로컬) *</Label>
+                <Input
+                  id="p-time"
+                  type="time"
+                  value={value.pickupTime}
+                  onChange={(e) => set("pickupTime", e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="p-close">현장 마감 시각 *</Label>
+                <Input
+                  id="p-close"
+                  type="time"
+                  value={value.closeTime}
+                  onChange={(e) => set("closeTime", e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="p-loc-type">장소 유형 *</Label>
+                <Select
+                  value={value.locationType}
+                  onValueChange={(v) =>
+                    set("locationType", v as PickupRequestFormValue["locationType"])
+                  }
+                >
+                  <SelectTrigger id="p-loc-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="business">사업장 (business)</SelectItem>
+                    <SelectItem value="residence">주거 (residence)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5 max-w-xl">
+              <Label htmlFor="p-location">픽업 위치 설명 *</Label>
               <Input
-                id="pickup-contact-number"
-                value={value.contactNumber}
-                onChange={(event) =>
-                  handleFieldChange("contactNumber", event.target.value)
-                }
+                id="p-location"
+                value={value.location}
+                onChange={(e) => set("location", e.target.value)}
+                placeholder="예: reception"
+                maxLength={80}
                 required
               />
             </div>
+          </section>
+
+          <Separator />
+
+          <section className="space-y-4">
+            <h3 className="text-sm font-semibold text-foreground">
+              발송인(픽업지) — shipperDetails
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label>국가 *</Label>
+                <Select
+                  value={value.shipperCountryCode}
+                  onValueChange={(v) => set("shipperCountryCode", v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRY_OPTIONS.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.name} ({c.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="sp-city">도시명 *</Label>
+                <Input
+                  id="sp-city"
+                  value={value.shipperCityName}
+                  onChange={(e) => set("shipperCityName", e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="sp-postal">우편번호 *</Label>
+                <Input
+                  id="sp-postal"
+                  value={value.shipperPostalCode}
+                  onChange={(e) => set("shipperPostalCode", e.target.value)}
+                  maxLength={12}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sp-a1">주소 1 *</Label>
+                <Input
+                  id="sp-a1"
+                  value={value.shipperAddressLine1}
+                  onChange={(e) => set("shipperAddressLine1", e.target.value)}
+                  maxLength={45}
+                  required
+                />
+              </div>
+            </div>
             <div className="space-y-1.5">
-              <Label htmlFor="pickup-date">희망 픽업 일자</Label>
+              <Label htmlFor="sp-a2">주소 2 (선택)</Label>
               <Input
-                id="pickup-date"
-                type="date"
-                value={value.pickupDate}
-                onChange={(event) =>
-                  handleFieldChange("pickupDate", event.target.value)
-                }
-                required
+                id="sp-a2"
+                value={value.shipperAddressLine2 ?? ""}
+                onChange={(e) => set("shipperAddressLine2", e.target.value)}
+                maxLength={45}
               />
             </div>
-          </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="sp-co">회사명 *</Label>
+                <Input
+                  id="sp-co"
+                  value={value.shipperCompanyName}
+                  onChange={(e) => set("shipperCompanyName", e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sp-fn">담당자 성명 *</Label>
+                <Input
+                  id="sp-fn"
+                  value={value.shipperFullName}
+                  onChange={(e) => set("shipperFullName", e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="sp-ph">전화 *</Label>
+                <Input
+                  id="sp-ph"
+                  value={value.shipperPhone}
+                  onChange={(e) => set("shipperPhone", e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sp-mob">휴대전화 (선택)</Label>
+                <Input
+                  id="sp-mob"
+                  value={value.shipperMobilePhone ?? ""}
+                  onChange={(e) => set("shipperMobilePhone", e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="sp-em">이메일 (선택)</Label>
+                <Input
+                  id="sp-em"
+                  type="email"
+                  value={value.shipperEmail ?? ""}
+                  onChange={(e) => set("shipperEmail", e.target.value)}
+                />
+              </div>
+            </div>
+          </section>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="pickup-note">추가 요청사항 (선택)</Label>
-            <Textarea
-              id="pickup-note"
-              value={value.note ?? ""}
-              onChange={(event) =>
-                handleFieldChange("note", event.target.value || undefined)
-              }
-              rows={2}
-              placeholder="예: 특수 포장 필요, 사전 연락 요청 등"
-            />
-          </div>
+          <Separator />
+
+          <section className="space-y-4">
+            <h3 className="text-sm font-semibold text-foreground">
+              수취인 — receiverDetails
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label>국가 *</Label>
+                <Select
+                  value={value.receiverCountryCode}
+                  onValueChange={(v) => set("receiverCountryCode", v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRY_OPTIONS.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.name} ({c.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="rv-city">도시명 *</Label>
+                <Input
+                  id="rv-city"
+                  value={value.receiverCityName}
+                  onChange={(e) => set("receiverCityName", e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="rv-postal">우편번호 *</Label>
+                <Input
+                  id="rv-postal"
+                  value={value.receiverPostalCode}
+                  onChange={(e) => set("receiverPostalCode", e.target.value)}
+                  maxLength={12}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rv-a1">주소 1 *</Label>
+                <Input
+                  id="rv-a1"
+                  value={value.receiverAddressLine1}
+                  onChange={(e) => set("receiverAddressLine1", e.target.value)}
+                  maxLength={45}
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="rv-a2">주소 2 (선택)</Label>
+                <Input
+                  id="rv-a2"
+                  value={value.receiverAddressLine2 ?? ""}
+                  onChange={(e) => set("receiverAddressLine2", e.target.value)}
+                  maxLength={45}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rv-county">주/카운티 (선택)</Label>
+                <Input
+                  id="rv-county"
+                  value={value.receiverCountyName ?? ""}
+                  onChange={(e) => set("receiverCountyName", e.target.value)}
+                  maxLength={45}
+                  placeholder="예: OREGON"
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="rv-co">회사명 *</Label>
+                <Input
+                  id="rv-co"
+                  value={value.receiverCompanyName}
+                  onChange={(e) => set("receiverCompanyName", e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rv-fn">수취인 성명 *</Label>
+                <Input
+                  id="rv-fn"
+                  value={value.receiverFullName}
+                  onChange={(e) => set("receiverFullName", e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="rv-ph">전화 *</Label>
+                <Input
+                  id="rv-ph"
+                  value={value.receiverPhone}
+                  onChange={(e) => set("receiverPhone", e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rv-mob">휴대전화 (선택)</Label>
+                <Input
+                  id="rv-mob"
+                  value={value.receiverMobilePhone ?? ""}
+                  onChange={(e) => set("receiverMobilePhone", e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rv-em">이메일 (선택)</Label>
+                <Input
+                  id="rv-em"
+                  type="email"
+                  value={value.receiverEmail ?? ""}
+                  onChange={(e) => set("receiverEmail", e.target.value)}
+                />
+              </div>
+            </div>
+          </section>
+
+          <Separator />
+
+          <section className="space-y-4">
+            <h3 className="text-sm font-semibold text-foreground">
+              화물 — shipmentDetails[0]
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="pr-code">제품 코드 *</Label>
+                <Input
+                  id="pr-code"
+                  value={value.productCode}
+                  onChange={(e) => set("productCode", e.target.value)}
+                  placeholder="P"
+                  maxLength={6}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>패키지 유형 *</Label>
+                <Select
+                  value={value.packageTypeCode}
+                  onValueChange={(v) =>
+                    set(
+                      "packageTypeCode",
+                      v as PickupRequestFormValue["packageTypeCode"]
+                    )
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PICKUP_PACKAGE_TYPE_CODES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>측정 단위 *</Label>
+                <Select
+                  value={value.unitOfMeasurement}
+                  onValueChange={(v) =>
+                    set(
+                      "unitOfMeasurement",
+                      v as PickupRequestFormValue["unitOfMeasurement"]
+                    )
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="metric">미터법 (metric)</SelectItem>
+                    <SelectItem value="imperial">야드파운드 (imperial)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-2 justify-end pb-1">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="p-customs"
+                    checked={value.isCustomsDeclarable}
+                    onCheckedChange={(c) =>
+                      set("isCustomsDeclarable", c === true)
+                    }
+                  />
+                  <Label htmlFor="p-customs" className="font-normal cursor-pointer">
+                    관세 신고 대상 화물
+                  </Label>
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="p-dv">신고 가액 *</Label>
+                <Input
+                  id="p-dv"
+                  type="number"
+                  step="0.001"
+                  min={0}
+                  value={value.declaredValue}
+                  onChange={(e) => set("declaredValue", e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="p-dvc">신고 가액 통화 *</Label>
+                <Input
+                  id="p-dvc"
+                  value={value.declaredValueCurrency}
+                  onChange={(e) =>
+                    set("declaredValueCurrency", e.target.value.toUpperCase())
+                  }
+                  maxLength={3}
+                  placeholder="EUR"
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="p-w">무게 (kg/lb) *</Label>
+                <Input
+                  id="p-w"
+                  type="number"
+                  step="0.001"
+                  min={0.001}
+                  value={value.packageWeight}
+                  onChange={(e) => set("packageWeight", e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="p-l">가로 *</Label>
+                <Input
+                  id="p-l"
+                  type="number"
+                  step="0.001"
+                  min={1}
+                  value={value.packageLength}
+                  onChange={(e) => set("packageLength", e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="p-wd">세로 *</Label>
+                <Input
+                  id="p-wd"
+                  type="number"
+                  step="0.001"
+                  min={1}
+                  value={value.packageWidth}
+                  onChange={(e) => set("packageWidth", e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="p-h">높이 *</Label>
+                <Input
+                  id="p-h"
+                  type="number"
+                  step="0.001"
+                  min={1}
+                  value={value.packageHeight}
+                  onChange={(e) => set("packageHeight", e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+          </section>
+
+          <Separator />
+
+          <section className="space-y-4">
+            <h3 className="text-sm font-semibold text-foreground">
+              특이사항 — specialInstructions / remark
+            </h3>
+            <div className="space-y-1.5">
+              <Label htmlFor="p-si">픽업 시 특이사항 (선택, 최대 80자)</Label>
+              <Input
+                id="p-si"
+                value={value.specialInstruction ?? ""}
+                onChange={(e) => set("specialInstruction", e.target.value)}
+                maxLength={80}
+                placeholder="예: please ring door bell"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="p-rm">비고 remark (선택)</Label>
+              <Textarea
+                id="p-rm"
+                value={value.remark ?? ""}
+                onChange={(e) => set("remark", e.target.value)}
+                rows={2}
+                placeholder="예: two parcels required pickup"
+              />
+            </div>
+          </section>
 
           <div className="flex justify-end pt-2">
             <Button type="submit" disabled={isSubmitting}>
@@ -130,4 +632,3 @@ export function PickupRequestForm({
     </Card>
   );
 }
-

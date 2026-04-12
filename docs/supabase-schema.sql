@@ -235,11 +235,19 @@ create table public.pickup (
   pickup_date date not null,
   note text,
   status public.pickup_status not null default 'requested',
+  request_payload jsonb,
+  response_payload jsonb,
+  dispatch_confirmation_numbers text[],
+  dhl_error text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 comment on table public.pickup is '사용자별 픽업 요청 데이터. shipment과 연결되거나 독립적으로 생성 가능';
+comment on column public.pickup.request_payload is 'DHL POST /pickups 요청 본문(JSON)';
+comment on column public.pickup.response_payload is 'DHL 응답 본문(JSON)';
+comment on column public.pickup.dispatch_confirmation_numbers is '배차 확인 번호 목록';
+comment on column public.pickup.dhl_error is 'DHL API 오류 메시지';
 comment on column public.pickup.shipment_id is '연결된 운송장 ID (운송장과 함께 픽업 요청한 경우 또는 나중에 연결)';
 
 create index idx_pickup_user_id on public.pickup(user_id);

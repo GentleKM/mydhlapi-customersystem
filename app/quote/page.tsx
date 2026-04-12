@@ -257,91 +257,91 @@ export default function QuotePage() {
           <CardTitle className="text-base">견적 정보 입력</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <p className="text-sm text-muted-foreground">
-            <span className="text-destructive">*</span> 는 견적·Landed Cost
-            공통으로 필요한 항목입니다.
-          </p>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="origin-country">
-                출발 국가 <span className="text-destructive">*</span>
-              </Label>
-              <Select value={originCountry} onValueChange={setOriginCountry}>
-                <SelectTrigger id="origin-country">
-                  <SelectValue placeholder="출발 국가 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNTRY_OPTIONS.map((c) => (
-                    <SelectItem key={c.code} value={c.code}>
-                      {c.name} ({c.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="origin-postal">
-                출발 우편번호 <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="origin-postal"
-                value={originPostalCode}
-                onChange={(e) => setOriginPostalCode(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label htmlFor="origin-city">
-                출발 도시명 <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="origin-city"
-                value={originCityName}
-                onChange={(e) => setOriginCityName(e.target.value)}
-                placeholder="예: SEOUL"
-              />
+          <div className="space-y-4">
+            {/* 출발: 국가 · 도시명 · 우편번호 한 줄(모바일은 세로 스택) */}
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+              <div className="space-y-1.5 min-w-0">
+                <Label htmlFor="origin-country">
+                  출발 국가 <span className="text-destructive">*</span>
+                </Label>
+                <Select value={originCountry} onValueChange={setOriginCountry}>
+                  <SelectTrigger id="origin-country">
+                    <SelectValue placeholder="출발 국가 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRY_OPTIONS.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.name} ({c.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                <Label htmlFor="origin-city">
+                  출발 도시명 <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="origin-city"
+                  value={originCityName}
+                  onChange={(e) => setOriginCityName(e.target.value)}
+                  placeholder="예: SEOUL"
+                />
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                <Label htmlFor="origin-postal">
+                  출발 우편번호 <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="origin-postal"
+                  value={originPostalCode}
+                  onChange={(e) => setOriginPostalCode(e.target.value)}
+                />
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="dest-country">
-                도착 국가 <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={destinationCountry}
-                onValueChange={setDestinationCountry}
-              >
-                <SelectTrigger id="dest-country">
-                  <SelectValue placeholder="도착 국가 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {COUNTRY_OPTIONS.map((c) => (
-                    <SelectItem key={c.code} value={c.code}>
-                      {c.name} ({c.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="dest-postal">
-                도착 우편번호 <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="dest-postal"
-                value={destinationPostalCode}
-                onChange={(e) => setDestinationPostalCode(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <Label htmlFor="dest-city">
-                도착 도시명 <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="dest-city"
-                value={destinationCityName}
-                onChange={(e) => setDestinationCityName(e.target.value)}
-                placeholder="예: TOKYO"
-              />
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+              <div className="space-y-1.5 min-w-0">
+                <Label htmlFor="dest-country">
+                  도착 국가 <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={destinationCountry}
+                  onValueChange={setDestinationCountry}
+                >
+                  <SelectTrigger id="dest-country">
+                    <SelectValue placeholder="도착 국가 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRY_OPTIONS.map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.name} ({c.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                <Label htmlFor="dest-city">
+                  도착 도시명 <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="dest-city"
+                  value={destinationCityName}
+                  onChange={(e) => setDestinationCityName(e.target.value)}
+                  placeholder="예: TOKYO"
+                />
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                <Label htmlFor="dest-postal">
+                  도착 우편번호 <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="dest-postal"
+                  value={destinationPostalCode}
+                  onChange={(e) => setDestinationPostalCode(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
@@ -593,7 +593,6 @@ export default function QuotePage() {
             </Button>
             <Button
               type="button"
-              variant="secondary"
               onClick={handleLanded}
               disabled={isLoadingLanded}
               className="flex-1"

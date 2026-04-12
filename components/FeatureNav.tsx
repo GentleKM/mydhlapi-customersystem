@@ -8,7 +8,7 @@ import { Home, Search, FileText, Package, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { href: "/", label: "메인", icon: Home },
+  { href: "/", label: "홈", icon: Home },
   { href: "/quote", label: "견적 조회", icon: Search },
   { href: "/shipments/create", label: "운송장 생성", icon: FileText },
   { href: "/shipments", label: "운송장 조회", icon: Package },

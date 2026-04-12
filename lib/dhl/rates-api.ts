@@ -70,3 +70,20 @@ export function formatPlannedShippingDateTime(isoDate: string): string {
   if (!d) return "";
   return `${d}T12:00:00GMT+09:00`;
 }
+
+/** 픽업 예정일시 (POST /pickups 예시: `2022-11-20T09:19:40 GMT+08:00`) */
+export function formatPlannedPickupDateTime(
+  isoDate: string,
+  timeHm: string,
+  tzLabel = "GMT+09:00"
+): string {
+  const d = isoDate.trim();
+  if (!d) return "";
+  const raw = (timeHm || "09:00").trim();
+  const [a = "9", b = "0"] = raw.split(":");
+  const hh = Math.min(23, Math.max(0, parseInt(a, 10)));
+  const mm = Math.min(59, Math.max(0, parseInt(b, 10)));
+  const h = String(hh).padStart(2, "0");
+  const m = String(mm).padStart(2, "0");
+  return `${d}T${h}:${m}:00 ${tzLabel}`;
+}
