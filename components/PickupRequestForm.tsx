@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -56,7 +55,6 @@ export const DEFAULT_PICKUP_FORM_VALUE: PickupRequestFormValue = {
   pickupTime: "09:00",
   closeTime: "18:00",
   location: "reception",
-  locationType: "business",
   shipperPostalCode: "",
   shipperCityName: "",
   shipperCountryCode: "KR",
@@ -78,12 +76,10 @@ export const DEFAULT_PICKUP_FORM_VALUE: PickupRequestFormValue = {
   receiverEmail: "",
   receiverCompanyName: "",
   receiverFullName: "",
-  productCode: "P",
+  shipmentKind: "goods",
   packageTypeCode: "3BX",
-  isCustomsDeclarable: false,
   declaredValue: "0",
   declaredValueCurrency: "EUR",
-  unitOfMeasurement: "metric",
   packageWeight: "",
   packageLength: "",
   packageWidth: "",
@@ -99,7 +95,7 @@ export interface PickupRequestFormProps {
   isSubmitting?: boolean;
 }
 
-/** Swagger `nonDocRequestPickup` 및 RTF 샘플 구조에 대응하는 픽업 입력 UI입니다. */
+/** Swagger `nonDocRequestPickup`에 대응하는 픽업 입력 UI입니다. */
 export function PickupRequestForm({
   value,
   onChange,
@@ -133,56 +129,42 @@ export function PickupRequestForm({
             <h3 className="text-sm font-semibold text-foreground">
               픽업 일시·장소
             </h3>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="space-y-1.5">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="p-date">픽업 예정일 *</Label>
                 <Input
                   id="p-date"
                   type="date"
                   value={value.pickupDate}
                   onChange={(e) => set("pickupDate", e.target.value)}
+                  className="w-full"
                   required
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="p-time">픽업 예정 시각 (로컬) *</Label>
                 <Input
                   id="p-time"
                   type="time"
                   value={value.pickupTime}
                   onChange={(e) => set("pickupTime", e.target.value)}
+                  className="w-full"
                   required
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="p-close">현장 마감 시각 *</Label>
                 <Input
                   id="p-close"
                   type="time"
                   value={value.closeTime}
                   onChange={(e) => set("closeTime", e.target.value)}
+                  className="w-full"
                   required
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="p-loc-type">장소 유형 *</Label>
-                <Select
-                  value={value.locationType}
-                  onValueChange={(v) =>
-                    set("locationType", v as PickupRequestFormValue["locationType"])
-                  }
-                >
-                  <SelectTrigger id="p-loc-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="business">사업장 (business)</SelectItem>
-                    <SelectItem value="residence">주거 (residence)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
-            <div className="space-y-1.5 max-w-xl">
+            <div className="space-y-1.5 w-full">
               <Label htmlFor="p-location">픽업 위치 설명 *</Label>
               <Input
                 id="p-location"
@@ -190,6 +172,7 @@ export function PickupRequestForm({
                 onChange={(e) => set("location", e.target.value)}
                 placeholder="예: reception"
                 maxLength={80}
+                className="w-full"
                 required
               />
             </div>
@@ -201,14 +184,14 @@ export function PickupRequestForm({
             <h3 className="text-sm font-semibold text-foreground">
               발송인(픽업지) — shipperDetails
             </h3>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-1.5">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label>국가 *</Label>
                 <Select
                   value={value.shipperCountryCode}
                   onValueChange={(v) => set("shipperCountryCode", v)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -220,90 +203,97 @@ export function PickupRequestForm({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5 sm:col-span-2">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="sp-city">도시명 *</Label>
                 <Input
                   id="sp-city"
+                  className="w-full"
                   value={value.shipperCityName}
                   onChange={(e) => set("shipperCityName", e.target.value)}
                   required
                 />
               </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="sp-postal">우편번호 *</Label>
                 <Input
                   id="sp-postal"
+                  className="w-full"
                   value={value.shipperPostalCode}
                   onChange={(e) => set("shipperPostalCode", e.target.value)}
                   maxLength={12}
                   required
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="sp-a1">주소 1 *</Label>
-                <Input
-                  id="sp-a1"
-                  value={value.shipperAddressLine1}
-                  onChange={(e) => set("shipperAddressLine1", e.target.value)}
-                  maxLength={45}
-                  required
-                />
-              </div>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 w-full">
+              <Label htmlFor="sp-a1">주소 1 *</Label>
+              <Input
+                id="sp-a1"
+                className="w-full"
+                value={value.shipperAddressLine1}
+                onChange={(e) => set("shipperAddressLine1", e.target.value)}
+                maxLength={45}
+                required
+              />
+            </div>
+            <div className="space-y-1.5 w-full">
               <Label htmlFor="sp-a2">주소 2 (선택)</Label>
               <Input
                 id="sp-a2"
+                className="w-full"
                 value={value.shipperAddressLine2 ?? ""}
                 onChange={(e) => set("shipperAddressLine2", e.target.value)}
                 maxLength={45}
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="sp-co">회사명 *</Label>
                 <Input
                   id="sp-co"
+                  className="w-full"
                   value={value.shipperCompanyName}
                   onChange={(e) => set("shipperCompanyName", e.target.value)}
                   required
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="sp-fn">담당자 성명 *</Label>
                 <Input
                   id="sp-fn"
+                  className="w-full"
                   value={value.shipperFullName}
                   onChange={(e) => set("shipperFullName", e.target.value)}
                   required
                 />
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-1.5">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="sp-ph">전화 *</Label>
                 <Input
                   id="sp-ph"
+                  className="w-full"
                   value={value.shipperPhone}
                   onChange={(e) => set("shipperPhone", e.target.value)}
                   required
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="sp-mob">휴대전화 (선택)</Label>
                 <Input
                   id="sp-mob"
+                  className="w-full"
                   value={value.shipperMobilePhone ?? ""}
                   onChange={(e) => set("shipperMobilePhone", e.target.value)}
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="sp-em">이메일 (선택)</Label>
                 <Input
                   id="sp-em"
                   type="email"
+                  className="w-full"
                   value={value.shipperEmail ?? ""}
                   onChange={(e) => set("shipperEmail", e.target.value)}
                 />
@@ -317,14 +307,14 @@ export function PickupRequestForm({
             <h3 className="text-sm font-semibold text-foreground">
               수취인 — receiverDetails
             </h3>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-1.5">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label>국가 *</Label>
                 <Select
                   value={value.receiverCountryCode}
                   onValueChange={(v) => set("receiverCountryCode", v)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -336,102 +326,108 @@ export function PickupRequestForm({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5 sm:col-span-2">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="rv-city">도시명 *</Label>
                 <Input
                   id="rv-city"
+                  className="w-full"
                   value={value.receiverCityName}
                   onChange={(e) => set("receiverCityName", e.target.value)}
                   required
                 />
               </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="rv-postal">우편번호 *</Label>
                 <Input
                   id="rv-postal"
+                  className="w-full"
                   value={value.receiverPostalCode}
                   onChange={(e) => set("receiverPostalCode", e.target.value)}
                   maxLength={12}
                   required
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="rv-a1">주소 1 *</Label>
-                <Input
-                  id="rv-a1"
-                  value={value.receiverAddressLine1}
-                  onChange={(e) => set("receiverAddressLine1", e.target.value)}
-                  maxLength={45}
-                  required
-                />
-              </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="rv-a2">주소 2 (선택)</Label>
-                <Input
-                  id="rv-a2"
-                  value={value.receiverAddressLine2 ?? ""}
-                  onChange={(e) => set("receiverAddressLine2", e.target.value)}
-                  maxLength={45}
-                />
-              </div>
-              <div className="space-y-1.5">
+            <div className="space-y-1.5 w-full">
+              <Label htmlFor="rv-a1">주소 1 *</Label>
+              <Input
+                id="rv-a1"
+                className="w-full"
+                value={value.receiverAddressLine1}
+                onChange={(e) => set("receiverAddressLine1", e.target.value)}
+                maxLength={45}
+                required
+              />
+            </div>
+            <div className="space-y-1.5 w-full">
+              <Label htmlFor="rv-a2">주소 2 (선택)</Label>
+              <Input
+                id="rv-a2"
+                className="w-full"
+                value={value.receiverAddressLine2 ?? ""}
+                onChange={(e) => set("receiverAddressLine2", e.target.value)}
+                maxLength={45}
+              />
+            </div>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="rv-county">주/카운티 (선택)</Label>
                 <Input
                   id="rv-county"
+                  className="w-full"
                   value={value.receiverCountyName ?? ""}
                   onChange={(e) => set("receiverCountyName", e.target.value)}
                   maxLength={45}
                   placeholder="예: OREGON"
                 />
               </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="rv-co">회사명 *</Label>
                 <Input
                   id="rv-co"
+                  className="w-full"
                   value={value.receiverCompanyName}
                   onChange={(e) => set("receiverCompanyName", e.target.value)}
                   required
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="rv-fn">수취인 성명 *</Label>
                 <Input
                   id="rv-fn"
+                  className="w-full"
                   value={value.receiverFullName}
                   onChange={(e) => set("receiverFullName", e.target.value)}
                   required
                 />
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-1.5">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="rv-ph">전화 *</Label>
                 <Input
                   id="rv-ph"
+                  className="w-full"
                   value={value.receiverPhone}
                   onChange={(e) => set("receiverPhone", e.target.value)}
                   required
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="rv-mob">휴대전화 (선택)</Label>
                 <Input
                   id="rv-mob"
+                  className="w-full"
                   value={value.receiverMobilePhone ?? ""}
                   onChange={(e) => set("receiverMobilePhone", e.target.value)}
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="rv-em">이메일 (선택)</Label>
                 <Input
                   id="rv-em"
                   type="email"
+                  className="w-full"
                   value={value.receiverEmail ?? ""}
                   onChange={(e) => set("receiverEmail", e.target.value)}
                 />
@@ -445,19 +441,57 @@ export function PickupRequestForm({
             <h3 className="text-sm font-semibold text-foreground">
               화물 — shipmentDetails[0]
             </h3>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="pr-code">제품 코드 *</Label>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
+                <Label>발송물 종류 *</Label>
+                <Select
+                  value={value.shipmentKind}
+                  onValueChange={(v) =>
+                    set(
+                      "shipmentKind",
+                      v as PickupRequestFormValue["shipmentKind"]
+                    )
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="goods">물품 (P)</SelectItem>
+                    <SelectItem value="documents">문서 (D)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 min-w-0 flex flex-col">
+                <Label htmlFor="p-dv">신고 가액 *</Label>
                 <Input
-                  id="pr-code"
-                  value={value.productCode}
-                  onChange={(e) => set("productCode", e.target.value)}
-                  placeholder="P"
-                  maxLength={6}
+                  id="p-dv"
+                  type="number"
+                  step="0.001"
+                  min={0}
+                  className="w-full"
+                  value={value.declaredValue}
+                  onChange={(e) => set("declaredValue", e.target.value)}
                   required
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
+                <Label htmlFor="p-dvc">신고 가액 통화 *</Label>
+                <Input
+                  id="p-dvc"
+                  className="w-full"
+                  value={value.declaredValueCurrency}
+                  onChange={(e) =>
+                    set("declaredValueCurrency", e.target.value.toUpperCase())
+                  }
+                  maxLength={3}
+                  placeholder="EUR"
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 grid-cols-1 sm:max-w-xs">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label>패키지 유형 *</Label>
                 <Select
                   value={value.packageTypeCode}
@@ -468,7 +502,7 @@ export function PickupRequestForm({
                     )
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -480,112 +514,55 @@ export function PickupRequestForm({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label>측정 단위 *</Label>
-                <Select
-                  value={value.unitOfMeasurement}
-                  onValueChange={(v) =>
-                    set(
-                      "unitOfMeasurement",
-                      v as PickupRequestFormValue["unitOfMeasurement"]
-                    )
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="metric">미터법 (metric)</SelectItem>
-                    <SelectItem value="imperial">야드파운드 (imperial)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2 justify-end pb-1">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="p-customs"
-                    checked={value.isCustomsDeclarable}
-                    onCheckedChange={(c) =>
-                      set("isCustomsDeclarable", c === true)
-                    }
-                  />
-                  <Label htmlFor="p-customs" className="font-normal cursor-pointer">
-                    관세 신고 대상 화물
-                  </Label>
-                </div>
-              </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="p-dv">신고 가액 *</Label>
-                <Input
-                  id="p-dv"
-                  type="number"
-                  step="0.001"
-                  min={0}
-                  value={value.declaredValue}
-                  onChange={(e) => set("declaredValue", e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="p-dvc">신고 가액 통화 *</Label>
-                <Input
-                  id="p-dvc"
-                  value={value.declaredValueCurrency}
-                  onChange={(e) =>
-                    set("declaredValueCurrency", e.target.value.toUpperCase())
-                  }
-                  maxLength={3}
-                  placeholder="EUR"
-                  required
-                />
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="p-w">무게 (kg/lb) *</Label>
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
+                <Label htmlFor="p-w">무게 (kg) *</Label>
                 <Input
                   id="p-w"
                   type="number"
                   step="0.001"
                   min={0.001}
+                  className="w-full"
                   value={value.packageWeight}
                   onChange={(e) => set("packageWeight", e.target.value)}
                   required
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="p-l">가로 *</Label>
                 <Input
                   id="p-l"
                   type="number"
                   step="0.001"
                   min={1}
+                  className="w-full"
                   value={value.packageLength}
                   onChange={(e) => set("packageLength", e.target.value)}
                   required
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="p-wd">세로 *</Label>
                 <Input
                   id="p-wd"
                   type="number"
                   step="0.001"
                   min={1}
+                  className="w-full"
                   value={value.packageWidth}
                   onChange={(e) => set("packageWidth", e.target.value)}
                   required
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="p-h">높이 *</Label>
                 <Input
                   id="p-h"
                   type="number"
                   step="0.001"
                   min={1}
+                  className="w-full"
                   value={value.packageHeight}
                   onChange={(e) => set("packageHeight", e.target.value)}
                   required
@@ -598,7 +575,7 @@ export function PickupRequestForm({
 
           <section className="space-y-4">
             <h3 className="text-sm font-semibold text-foreground">
-              특이사항 — specialInstructions / remark
+              특이사항 — specialInstructions / 비고
             </h3>
             <div className="space-y-1.5">
               <Label htmlFor="p-si">픽업 시 특이사항 (선택, 최대 80자)</Label>
@@ -611,7 +588,7 @@ export function PickupRequestForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="p-rm">비고 remark (선택)</Label>
+              <Label htmlFor="p-rm">비고 (선택)</Label>
               <Textarea
                 id="p-rm"
                 value={value.remark ?? ""}

@@ -260,12 +260,12 @@ export default function QuotePage() {
           <div className="space-y-4">
             {/* 출발: 국가 · 도시명 · 우편번호 한 줄(모바일은 세로 스택) */}
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-              <div className="space-y-1.5 min-w-0">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="origin-country">
                   출발 국가 <span className="text-destructive">*</span>
                 </Label>
                 <Select value={originCountry} onValueChange={setOriginCountry}>
-                  <SelectTrigger id="origin-country">
+                  <SelectTrigger id="origin-country" className="w-full">
                     <SelectValue placeholder="출발 국가 선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -277,23 +277,25 @@ export default function QuotePage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5 min-w-0">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="origin-city">
                   출발 도시명 <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="origin-city"
+                  className="w-full"
                   value={originCityName}
                   onChange={(e) => setOriginCityName(e.target.value)}
                   placeholder="예: SEOUL"
                 />
               </div>
-              <div className="space-y-1.5 min-w-0">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="origin-postal">
                   출발 우편번호 <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="origin-postal"
+                  className="w-full"
                   value={originPostalCode}
                   onChange={(e) => setOriginPostalCode(e.target.value)}
                 />
@@ -301,7 +303,7 @@ export default function QuotePage() {
             </div>
 
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-              <div className="space-y-1.5 min-w-0">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="dest-country">
                   도착 국가 <span className="text-destructive">*</span>
                 </Label>
@@ -309,7 +311,7 @@ export default function QuotePage() {
                   value={destinationCountry}
                   onValueChange={setDestinationCountry}
                 >
-                  <SelectTrigger id="dest-country">
+                  <SelectTrigger id="dest-country" className="w-full">
                     <SelectValue placeholder="도착 국가 선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -321,23 +323,25 @@ export default function QuotePage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5 min-w-0">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="dest-city">
                   도착 도시명 <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="dest-city"
+                  className="w-full"
                   value={destinationCityName}
                   onChange={(e) => setDestinationCityName(e.target.value)}
                   placeholder="예: TOKYO"
                 />
               </div>
-              <div className="space-y-1.5 min-w-0">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="dest-postal">
                   도착 우편번호 <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="dest-postal"
+                  className="w-full"
                   value={destinationPostalCode}
                   onChange={(e) => setDestinationPostalCode(e.target.value)}
                 />

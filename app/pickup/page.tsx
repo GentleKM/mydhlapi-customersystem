@@ -3,7 +3,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
 import {
   PickupRequestForm,
@@ -99,29 +98,6 @@ export default function PickupPage() {
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
         />
-
-        <Card className="bg-muted/30 border-dashed">
-          <CardHeader className="py-3">
-            <CardTitle className="text-base font-medium">
-              참고: 제공하신 RTF 샘플
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-2 pb-4">
-            <p>
-              샘플 JSON은 <strong>운송장 생성</strong> 요청 본문에 포함되는{" "}
-              <code className="text-xs">pickup</code>,{" "}
-              <code className="text-xs">customerDetails</code>,{" "}
-              <code className="text-xs">content</code> 등이 합쳐진 형태입니다.
-            </p>
-            <p>
-              이 화면은 Swagger의 <strong>독립 픽업 API</strong>{" "}
-              <code className="text-xs">POST /pickups</code>(예시:{" "}
-              <code className="text-xs">nonDocRequestPickup</code>)에 맞추었으며,
-              동일하게 발송인·수취인 주소, 연락처, 픽업 일시·마감, 화물(제품·패키지·
-              신고가액)을 요청합니다.
-            </p>
-          </CardContent>
-        </Card>
       </main>
     </FeaturePageShell>
   );

@@ -45,14 +45,14 @@ export default function HomePage() {
         <AuthButtons />
       </div>
 
-      {/* 히어로: public/main page hero.png (비율·컨테이너 크기 유지) */}
+      {/* 히어로: public/main page hero2.png (비율·컨테이너 크기 유지) */}
       <section
         className="relative w-full overflow-hidden rounded-2xl border border-border/60 bg-muted/30 shadow-sm ring-1 ring-black/[0.04] dark:ring-white/10"
         aria-hidden
       >
         <div className="relative aspect-[16/10] w-full max-h-[min(280px,40vh)] sm:aspect-[2/1] sm:max-h-[min(340px,45vh)] md:max-h-[min(400px,50vh)] lg:aspect-[21/9]">
           <Image
-            src="/main%20page%20hero.png"
+            src="/main%20page%20hero2.png"
             alt=""
             fill
             priority

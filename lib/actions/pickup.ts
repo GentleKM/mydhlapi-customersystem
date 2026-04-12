@@ -95,10 +95,13 @@ function buildPickupRequestBody(
 
   const acc = { typeCode: "shipper", number: accountNumber };
 
+  const productCode = input.shipmentKind === "goods" ? "P" : "D";
+  const isCustomsDeclarable = input.shipmentKind === "goods";
+
   const shipmentItem: Record<string, unknown> = {
-    productCode: input.productCode.trim(),
-    isCustomsDeclarable: input.isCustomsDeclarable,
-    unitOfMeasurement: input.unitOfMeasurement,
+    productCode,
+    isCustomsDeclarable,
+    unitOfMeasurement: "metric",
     declaredValue: input.declaredValue,
     declaredValueCurrency: input.declaredValueCurrency.toUpperCase().slice(0, 3),
     accounts: [acc],
@@ -122,7 +125,7 @@ function buildPickupRequestBody(
     ),
     closeTime: input.closeTime,
     location: input.location.trim(),
-    locationType: input.locationType,
+    locationType: "business",
     accounts: [acc],
     customerDetails: {
       shipperDetails: {
