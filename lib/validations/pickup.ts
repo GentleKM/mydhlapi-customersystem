@@ -4,28 +4,6 @@
 
 import { z } from "zod";
 
-/** 패키지 typeCode (PackageRR enum, Swagger) */
-export const PICKUP_PACKAGE_TYPE_CODES = [
-  "3BX",
-  "2BC",
-  "2BP",
-  "CE1",
-  "7BX",
-  "6BX",
-  "4BX",
-  "2BX",
-  "1CE",
-  "WB1",
-  "WB3",
-  "XPD",
-  "8BX",
-  "5BX",
-  "WB6",
-  "TBL",
-  "TBS",
-  "WB2",
-] as const;
-
 const timeHm = z
   .string()
   .regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, "시간은 HH:MM 형식이어야 합니다.");
@@ -46,7 +24,6 @@ export const pickupFormSchema = z.object({
   shipperAddressLine1: z.string().min(1).max(45),
   shipperAddressLine2: z.string().max(45).optional(),
   shipperPhone: z.string().min(1).max(70),
-  shipperMobilePhone: z.string().max(70).optional(),
   shipperEmail: optionalEmail,
   shipperCompanyName: z.string().min(1).max(100),
   shipperFullName: z.string().min(1).max(255),
@@ -55,15 +32,12 @@ export const pickupFormSchema = z.object({
   receiverCountryCode: z.string().length(2),
   receiverAddressLine1: z.string().min(1).max(45),
   receiverAddressLine2: z.string().max(45).optional(),
-  receiverCountyName: z.string().max(45).optional(),
   receiverPhone: z.string().min(1).max(70),
-  receiverMobilePhone: z.string().max(70).optional(),
   receiverEmail: optionalEmail,
   receiverCompanyName: z.string().min(1).max(100),
   receiverFullName: z.string().min(1).max(255),
   /** 물품→P·관세 true, 문서→D·관세 false (API 요청 시 매핑) */
   shipmentKind: z.enum(["goods", "documents"]),
-  packageTypeCode: z.enum(PICKUP_PACKAGE_TYPE_CODES),
   declaredValue: z.coerce.number().min(0),
   declaredValueCurrency: z.string().length(3),
   packageWeight: z.coerce.number().min(0.001),

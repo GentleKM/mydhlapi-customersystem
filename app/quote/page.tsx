@@ -39,7 +39,7 @@ const COUNTRY_OPTIONS = [
 
 const CURRENCY_OPTIONS = ["KRW", "USD", "EUR", "JPY", "GBP", "AUD"] as const;
 
-/** PRD: 견적 조회 및 Landed Cost 조회 UI입니다. */
+/** PRD: 견적 및 Landed Cost 조회 UI입니다. */
 export default function QuotePage() {
   const [originCountry, setOriginCountry] = useState("");
   const [originPostalCode, setOriginPostalCode] = useState("");
@@ -177,7 +177,7 @@ export default function QuotePage() {
   const handleLanded = async () => {
     const missing = validateCommonMessages();
     const landedMissing: string[] = [];
-    if (!landedCurrencyCode.trim()) landedMissing.push("Landed Cost 결과 통화");
+    if (!landedCurrencyCode.trim()) landedMissing.push("통화");
     if (!itemName.trim()) landedMissing.push("품목명");
     if (!itemDescription.trim()) landedMissing.push("품목 설명");
     if (!manufacturerCountry) landedMissing.push("제조 국가");
@@ -243,7 +243,7 @@ export default function QuotePage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            견적 조회 및 발송 가능 확인
+            견적 및 Landed Cost 조회
           </h1>
           <p className="text-muted-foreground">
             목적지별 운임 견적을 산출하고 발송 가능 지역 여부를 확인하세요.
@@ -254,7 +254,7 @@ export default function QuotePage() {
 
       <Card className="bg-card/80 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-base">견적 정보 입력</CardTitle>
+          <CardTitle className="text-base">견적 조회</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
@@ -464,20 +464,16 @@ export default function QuotePage() {
             )}
           </div>
 
-          <div className="rounded-lg border border-border p-4 space-y-4">
-            <p className="text-sm font-medium">Landed Cost 조회 전용</p>
-            <p className="text-xs text-muted-foreground">
-              아래 항목은 “Landed Cost 조회” 버튼에만 사용됩니다. (견적 조회에는
-              필요 없습니다.)
-            </p>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label>Landed Cost 결과 통화</Label>
+          <div className="rounded-lg border border-border p-4 space-y-3">
+            <p className="text-sm font-medium">Landed Cost 조회</p>
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_minmax(0,5fr)]">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
+                <Label>통화</Label>
                 <Select
                   value={landedCurrencyCode}
                   onValueChange={setLandedCurrencyCode}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -489,13 +485,13 @@ export default function QuotePage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="mfg">제조 국가</Label>
                 <Select
                   value={manufacturerCountry}
                   onValueChange={setManufacturerCountry}
                 >
-                  <SelectTrigger id="mfg">
+                  <SelectTrigger id="mfg" className="w-full">
                     <SelectValue placeholder="선택" />
                   </SelectTrigger>
                   <SelectContent>
@@ -507,14 +503,17 @@ export default function QuotePage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5 md:col-span-2">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="iname">품목명</Label>
                 <Input
                   id="iname"
+                  className="w-full"
                   value={itemName}
                   onChange={(e) => setItemName(e.target.value)}
                 />
               </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1.5 md:col-span-2">
                 <Label htmlFor="idesc">품목 설명</Label>
                 <Input

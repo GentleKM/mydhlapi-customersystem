@@ -85,7 +85,7 @@ function ShipmentsPageContent() {
 
   return (
     <FeaturePageShell>
-    <main className="w-full space-y-6">
+    <main className="max-w-4xl mx-auto w-full space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
@@ -136,7 +136,7 @@ export default function ShipmentsPage() {
     <Suspense
       fallback={
         <FeaturePageShell>
-          <main className="w-full">
+          <main className="max-w-4xl mx-auto w-full">
             <p className="text-muted-foreground">로딩 중...</p>
           </main>
         </FeaturePageShell>

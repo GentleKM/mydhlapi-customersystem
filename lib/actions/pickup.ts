@@ -61,9 +61,6 @@ function buildPickupRequestBody(
   if (input.receiverAddressLine2?.trim()) {
     receiverAddr.addressLine2 = input.receiverAddressLine2.trim();
   }
-  if (input.receiverCountyName?.trim()) {
-    receiverAddr.countyName = input.receiverCountyName.trim();
-  }
 
   const shipperContact: Record<string, unknown> = {
     phone: input.shipperPhone.trim(),
@@ -73,9 +70,6 @@ function buildPickupRequestBody(
   if (input.shipperEmail?.trim()) {
     shipperContact.email = input.shipperEmail.trim();
   }
-  if (input.shipperMobilePhone?.trim()) {
-    shipperContact.mobilePhone = input.shipperMobilePhone.trim();
-  }
 
   const receiverContact: Record<string, unknown> = {
     phone: input.receiverPhone.trim(),
@@ -84,9 +78,6 @@ function buildPickupRequestBody(
   };
   if (input.receiverEmail?.trim()) {
     receiverContact.email = input.receiverEmail.trim();
-  }
-  if (input.receiverMobilePhone?.trim()) {
-    receiverContact.mobilePhone = input.receiverMobilePhone.trim();
   }
 
   const specialInstructions = input.specialInstruction?.trim()
@@ -105,9 +96,9 @@ function buildPickupRequestBody(
     declaredValue: input.declaredValue,
     declaredValueCurrency: input.declaredValueCurrency.toUpperCase().slice(0, 3),
     accounts: [acc],
+    /** PackageRR: weight·dimensions 필수, typeCode는 Swagger상 선택(샘플에 없을 수 있음) */
     packages: [
       {
-        typeCode: input.packageTypeCode,
         weight: input.packageWeight,
         dimensions: {
           length: input.packageLength,

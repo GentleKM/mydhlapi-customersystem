@@ -13,10 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  PICKUP_PACKAGE_TYPE_CODES,
-  type PickupFormInput,
-} from "@/lib/validations/pickup";
+import type { PickupFormInput } from "@/lib/validations/pickup";
 
 const COUNTRY_OPTIONS = [
   { code: "KR", name: "대한민국" },
@@ -61,7 +58,6 @@ export const DEFAULT_PICKUP_FORM_VALUE: PickupRequestFormValue = {
   shipperAddressLine1: "",
   shipperAddressLine2: "",
   shipperPhone: "",
-  shipperMobilePhone: "",
   shipperEmail: "",
   shipperCompanyName: "",
   shipperFullName: "",
@@ -70,14 +66,11 @@ export const DEFAULT_PICKUP_FORM_VALUE: PickupRequestFormValue = {
   receiverCountryCode: "US",
   receiverAddressLine1: "",
   receiverAddressLine2: "",
-  receiverCountyName: "",
   receiverPhone: "",
-  receiverMobilePhone: "",
   receiverEmail: "",
   receiverCompanyName: "",
   receiverFullName: "",
   shipmentKind: "goods",
-  packageTypeCode: "3BX",
   declaredValue: "0",
   declaredValueCurrency: "EUR",
   packageWeight: "",
@@ -268,7 +261,7 @@ export function PickupRequestForm({
                 />
               </div>
             </div>
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="sp-ph">전화 *</Label>
                 <Input
@@ -277,15 +270,6 @@ export function PickupRequestForm({
                   value={value.shipperPhone}
                   onChange={(e) => set("shipperPhone", e.target.value)}
                   required
-                />
-              </div>
-              <div className="space-y-1.5 min-w-0 flex flex-col">
-                <Label htmlFor="sp-mob">휴대전화 (선택)</Label>
-                <Input
-                  id="sp-mob"
-                  className="w-full"
-                  value={value.shipperMobilePhone ?? ""}
-                  onChange={(e) => set("shipperMobilePhone", e.target.value)}
                 />
               </div>
               <div className="space-y-1.5 min-w-0 flex flex-col">
@@ -369,18 +353,7 @@ export function PickupRequestForm({
                 maxLength={45}
               />
             </div>
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-              <div className="space-y-1.5 min-w-0 flex flex-col">
-                <Label htmlFor="rv-county">주/카운티 (선택)</Label>
-                <Input
-                  id="rv-county"
-                  className="w-full"
-                  value={value.receiverCountyName ?? ""}
-                  onChange={(e) => set("receiverCountyName", e.target.value)}
-                  maxLength={45}
-                  placeholder="예: OREGON"
-                />
-              </div>
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="rv-co">회사명 *</Label>
                 <Input
@@ -402,7 +375,7 @@ export function PickupRequestForm({
                 />
               </div>
             </div>
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               <div className="space-y-1.5 min-w-0 flex flex-col">
                 <Label htmlFor="rv-ph">전화 *</Label>
                 <Input
@@ -411,15 +384,6 @@ export function PickupRequestForm({
                   value={value.receiverPhone}
                   onChange={(e) => set("receiverPhone", e.target.value)}
                   required
-                />
-              </div>
-              <div className="space-y-1.5 min-w-0 flex flex-col">
-                <Label htmlFor="rv-mob">휴대전화 (선택)</Label>
-                <Input
-                  id="rv-mob"
-                  className="w-full"
-                  value={value.receiverMobilePhone ?? ""}
-                  onChange={(e) => set("receiverMobilePhone", e.target.value)}
                 />
               </div>
               <div className="space-y-1.5 min-w-0 flex flex-col">
@@ -488,31 +452,6 @@ export function PickupRequestForm({
                   placeholder="EUR"
                   required
                 />
-              </div>
-            </div>
-            <div className="grid gap-4 grid-cols-1 sm:max-w-xs">
-              <div className="space-y-1.5 min-w-0 flex flex-col">
-                <Label>패키지 유형 *</Label>
-                <Select
-                  value={value.packageTypeCode}
-                  onValueChange={(v) =>
-                    set(
-                      "packageTypeCode",
-                      v as PickupRequestFormValue["packageTypeCode"]
-                    )
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PICKUP_PACKAGE_TYPE_CODES.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
             <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">

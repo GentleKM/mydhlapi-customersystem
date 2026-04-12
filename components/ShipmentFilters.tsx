@@ -46,12 +46,13 @@ export function ShipmentFilters({
   return (
     <section
       aria-label="운송장 필터 및 정렬"
-      className="flex flex-col gap-3 rounded-xl border bg-card/80 p-4 backdrop-blur-sm md:flex-row md:items-end"
+      className="grid grid-cols-1 gap-4 rounded-xl border bg-card/80 p-4 backdrop-blur-sm sm:grid-cols-2 lg:grid-cols-4"
     >
-      <div className="flex flex-1 flex-col gap-1.5">
+      <div className="min-w-0 flex flex-col gap-1.5">
         <Label htmlFor="shipment-keyword">검색</Label>
         <Input
           id="shipment-keyword"
+          className="w-full"
           placeholder="수취인, 운송장 번호 등으로 검색"
           value={value.keyword ?? ""}
           onChange={(event) =>
@@ -60,7 +61,7 @@ export function ShipmentFilters({
         />
       </div>
 
-      <div className="flex flex-1 flex-col gap-1.5">
+      <div className="min-w-0 flex flex-col gap-1.5">
         <Label>도착지 국가</Label>
         <Select
           value={value.destinationCountry ?? "all"}
@@ -84,7 +85,7 @@ export function ShipmentFilters({
         </Select>
       </div>
 
-      <div className="flex flex-1 flex-col gap-1.5">
+      <div className="min-w-0 flex flex-col gap-1.5">
         <Label>상태</Label>
         <Select
           value={value.status}
@@ -105,7 +106,7 @@ export function ShipmentFilters({
         </Select>
       </div>
 
-      <div className="flex flex-1 flex-col gap-1.5">
+      <div className="min-w-0 flex flex-col gap-1.5">
         <Label>정렬</Label>
         <Select
           value={value.sortKey}
