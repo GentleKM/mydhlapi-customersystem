@@ -10,7 +10,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FloatHomeButton } from "@/components/FloatHomeButton";
+import { FeaturePageShell } from "@/components/FeaturePageShell";
 import { getShipmentById, deleteShipment, createDhlLabel } from "@/lib/actions/shipment";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -75,52 +75,65 @@ export default function ShipmentDetailPage() {
 
   if (error || !id) {
     return (
-      <main className="container mx-auto max-w-4xl px-4 py-8">
-        <div className="space-y-4">
-          <p className="text-destructive">{error ?? "잘못된 경로입니다."}</p>
-          <Button asChild variant="outline">
-            <Link href="/shipments">목록으로</Link>
-          </Button>
-        </div>
-      </main>
+      <FeaturePageShell>
+        <main className="max-w-4xl mx-auto w-full">
+          <div className="space-y-4">
+            <p className="text-destructive">{error ?? "잘못된 경로입니다."}</p>
+            <Button asChild variant="outline">
+              <Link href="/shipments">목록으로</Link>
+            </Button>
+          </div>
+        </main>
+      </FeaturePageShell>
     );
   }
 
   if (!data) {
     return (
-      <main className="container mx-auto max-w-4xl px-4 py-8">
-        <p className="text-muted-foreground">로딩 중...</p>
-      </main>
+      <FeaturePageShell>
+        <main className="max-w-4xl mx-auto w-full">
+          <p className="text-muted-foreground">로딩 중...</p>
+        </main>
+      </FeaturePageShell>
     );
   }
 
   const s = data;
   const pkg = data.package;
+  const status = (s.status as string) ?? "";
+  const airwayBill = String(s.airway_bill_number ?? "").trim();
+  /** 라벨 발급 후(운송장 번호 존재 또는 draft 아님)에는 수정·삭제 불가 */
+  const isShipmentLocked = status !== "draft" || Boolean(airwayBill);
 
   return (
-    <main className="container mx-auto max-w-4xl space-y-6 px-4 py-8">
+    <FeaturePageShell>
+    <main className="max-w-4xl mx-auto w-full space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
             운송장 상세
           </h1>
           <p className="text-muted-foreground">
-            운송장 정보를 확인하고 수정 또는 삭제할 수 있습니다.
+            {isShipmentLocked
+              ? "운송장 정보를 확인할 수 있습니다."
+              : "운송장 정보를 확인하고 수정 또는 삭제할 수 있습니다."}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/shipments/${id}/edit`}>수정</Link>
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDelete}
-            disabled={isDeleting}
-          >
-            {isDeleting ? "삭제 중..." : "삭제"}
-          </Button>
-        </div>
+        {!isShipmentLocked && (
+          <div className="flex gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/shipments/${id}/edit`}>수정</Link>
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "삭제 중..." : "삭제"}
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -229,7 +242,7 @@ export default function ShipmentDetailPage() {
           <Link href="/shipments">목록으로</Link>
         </Button>
       </div>
-      <FloatHomeButton />
     </main>
+    </FeaturePageShell>
   );
 }

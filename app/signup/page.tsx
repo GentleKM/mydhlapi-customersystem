@@ -13,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { createClient } from "@/lib/supabase/client";
 import { AuthButtons } from "@/components/AuthButtons";
-import { FloatHomeButton } from "@/components/FloatHomeButton";
 
 const PASSWORD_REGEX = {
   upper: /[A-Z]/,
@@ -173,7 +172,6 @@ export default function SignupPage() {
         </Card>
         </div>
       </div>
-      <FloatHomeButton />
     </main>
   );
 }

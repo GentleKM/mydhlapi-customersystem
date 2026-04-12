@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { HsCodeFieldWithAi } from "@/components/HsCodeFieldWithAi";
 import type { HsCodeSuggestion } from "@/components/AiShipmentAssistant";
 import { AuthButtons } from "@/components/AuthButtons";
-import { FloatHomeButton } from "@/components/FloatHomeButton";
+import { FeaturePageShell } from "@/components/FeaturePageShell";
 import {
   type ContentType,
   type CurrencyCode,
@@ -80,6 +80,12 @@ export default function EditShipmentPage() {
       if (error) setLoadError(error);
       else if (data) {
         const s = data as Record<string, unknown>;
+        const st = (s.status as string) ?? "";
+        const airwayBill = String(s.airway_bill_number ?? "").trim();
+        if (st !== "draft" || Boolean(airwayBill)) {
+          router.replace(`/shipments/${id}`);
+          return;
+        }
         setFormData({
           shipper: {
             name: (s.shipper_name as string) ?? "",
@@ -180,25 +186,30 @@ export default function EditShipmentPage() {
 
   if (isLoading) {
     return (
-      <main className="container mx-auto max-w-4xl px-4 py-8">
-        <p className="text-muted-foreground">로딩 중...</p>
-      </main>
+      <FeaturePageShell>
+        <main className="max-w-4xl mx-auto w-full">
+          <p className="text-muted-foreground">로딩 중...</p>
+        </main>
+      </FeaturePageShell>
     );
   }
 
   if (loadError) {
     return (
-      <main className="container mx-auto max-w-4xl px-4 py-8">
-        <p className="text-destructive">{loadError}</p>
-        <Button asChild variant="outline" className="mt-4">
-          <Link href="/shipments">목록으로</Link>
-        </Button>
-      </main>
+      <FeaturePageShell>
+        <main className="max-w-4xl mx-auto w-full">
+          <p className="text-destructive">{loadError}</p>
+          <Button asChild variant="outline" className="mt-4">
+            <Link href="/shipments">목록으로</Link>
+          </Button>
+        </main>
+      </FeaturePageShell>
     );
   }
 
   return (
-    <main className="container mx-auto max-w-4xl space-y-6 px-4 py-8">
+    <FeaturePageShell>
+    <main className="max-w-4xl mx-auto w-full space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight">운송장 수정</h1>
@@ -307,7 +318,7 @@ export default function EditShipmentPage() {
           <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "수정 중..." : "수정 완료"}</Button>
         </div>
       </form>
-      <FloatHomeButton />
     </main>
+    </FeaturePageShell>
   );
 }

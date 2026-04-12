@@ -8,7 +8,7 @@ import { Alert } from "@/components/ui/alert";
 import { PickupRequestForm } from "@/components/PickupRequestForm";
 import type { PickupRequestFormValue } from "@/components/PickupRequestForm";
 import { AuthButtons } from "@/components/AuthButtons";
-import { FloatHomeButton } from "@/components/FloatHomeButton";
+import { FeaturePageShell } from "@/components/FeaturePageShell";
 
 /** PRD에 정의된 픽업 요청 페이지: 별도의 픽업 예약만을 위한 전용 화면입니다. */
 export default function PickupPage() {
@@ -39,7 +39,8 @@ export default function PickupPage() {
   };
 
   return (
-    <main className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
+    <FeaturePageShell>
+    <main className="max-w-4xl mx-auto w-full space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
@@ -66,7 +67,7 @@ export default function PickupPage() {
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
       />
-      <FloatHomeButton />
     </main>
+    </FeaturePageShell>
   );
 }

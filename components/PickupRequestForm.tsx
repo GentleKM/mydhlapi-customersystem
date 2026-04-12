@@ -50,7 +50,7 @@ export function PickupRequestForm({
   };
 
   return (
-    <Card className="max-w-2xl bg-card/80 backdrop-blur-sm">
+    <Card className="w-full bg-card/80 backdrop-blur-sm">
       <CardHeader>
         <CardTitle className="text-base">픽업 요청 정보</CardTitle>
       </CardHeader>

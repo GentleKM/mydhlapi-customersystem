@@ -281,6 +281,23 @@ export async function updateShipment(
   } = await supabase.auth.getUser();
   if (!user?.id) return { error: "로그인이 필요합니다." };
 
+  const { data: existing, error: fetchErr } = await supabase
+    .from("shipment")
+    .select("status, airway_bill_number")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+  if (fetchErr || !existing) {
+    return { error: fetchErr?.message ?? "운송장을 찾을 수 없습니다." };
+  }
+  const row = existing as { status: string; airway_bill_number: string | null };
+  if (
+    row.status !== "draft" ||
+    (row.airway_bill_number != null && String(row.airway_bill_number).trim() !== "")
+  ) {
+    return { error: "라벨이 발급된 운송장은 수정할 수 없습니다." };
+  }
+
   const { error: shipError } = await supabase
     .from("shipment")
     .update({
@@ -350,6 +367,23 @@ export async function deleteShipment(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user?.id) return { error: "로그인이 필요합니다." };
+
+  const { data: existing, error: fetchErr } = await supabase
+    .from("shipment")
+    .select("status, airway_bill_number")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
+  if (fetchErr || !existing) {
+    return { error: fetchErr?.message ?? "운송장을 찾을 수 없습니다." };
+  }
+  const row = existing as { status: string; airway_bill_number: string | null };
+  if (
+    row.status !== "draft" ||
+    (row.airway_bill_number != null && String(row.airway_bill_number).trim() !== "")
+  ) {
+    return { error: "라벨이 발급된 운송장은 삭제할 수 없습니다." };
+  }
 
   const { error } = await supabase
     .from("shipment")

@@ -8,7 +8,6 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { AuthButtons } from "@/components/AuthButtons";
-import { FloatHomeButton } from "@/components/FloatHomeButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -148,7 +147,6 @@ export default function LoginPage() {
         </Card>
         </div>
       </div>
-      <FloatHomeButton />
     </main>
   );
 }

@@ -22,7 +22,7 @@ import type {
 import type { ShipmentListItem } from "@/components/ShipmentList";
 import { getShipments } from "@/lib/actions/shipment";
 import { AuthButtons } from "@/components/AuthButtons";
-import { FloatHomeButton } from "@/components/FloatHomeButton";
+import { FeaturePageShell } from "@/components/FeaturePageShell";
 
 const VALID_STATUSES: ShipmentFilterStatus[] = [
   "draft",
@@ -84,7 +84,8 @@ function ShipmentsPageContent() {
   ];
 
   return (
-    <main className="container mx-auto px-4 py-8 space-y-6">
+    <FeaturePageShell>
+    <main className="w-full space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
@@ -124,15 +125,23 @@ function ShipmentsPageContent() {
           />
         </CardContent>
       </Card>
-      <FloatHomeButton />
     </main>
+    </FeaturePageShell>
   );
 }
 
 /** PRD에 정의된 운송장 조회 페이지: 기존 생성된 운송장의 상세 정보 및 히스토리를 확인합니다. */
 export default function ShipmentsPage() {
   return (
-    <Suspense fallback={<main className="container mx-auto px-4 py-8"><p className="text-muted-foreground">로딩 중...</p></main>}>
+    <Suspense
+      fallback={
+        <FeaturePageShell>
+          <main className="w-full">
+            <p className="text-muted-foreground">로딩 중...</p>
+          </main>
+        </FeaturePageShell>
+      }
+    >
       <ShipmentsPageContent />
     </Suspense>
   );

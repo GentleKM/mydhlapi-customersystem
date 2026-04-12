@@ -15,7 +15,7 @@ import { Alert } from "@/components/ui/alert";
 import { HsCodeFieldWithAi } from "@/components/HsCodeFieldWithAi";
 import type { HsCodeSuggestion } from "@/components/AiShipmentAssistant";
 import { AuthButtons } from "@/components/AuthButtons";
-import { FloatHomeButton } from "@/components/FloatHomeButton";
+import { FeaturePageShell } from "@/components/FeaturePageShell";
 import {
   type ContentType,
   type CurrencyCode,
@@ -162,7 +162,8 @@ export default function CreateShipmentPage() {
   };
 
   return (
-    <main className="container mx-auto max-w-4xl space-y-6 px-4 py-8">
+    <FeaturePageShell>
+    <main className="max-w-4xl mx-auto w-full space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
@@ -745,7 +746,7 @@ export default function CreateShipmentPage() {
           </Button>
         </div>
       </form>
-      <FloatHomeButton />
     </main>
+    </FeaturePageShell>
   );
 }
