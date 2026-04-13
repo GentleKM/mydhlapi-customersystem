@@ -517,7 +517,7 @@ export function PickupRequestForm({
 
           <div className="flex justify-end pt-2">
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "요청 전송 중..." : "픽업 요청 보내기"}
+              {isSubmitting ? "요청 전송 중..." : "승인 필요"}
             </Button>
           </div>
         </form>

@@ -134,7 +134,7 @@ export default function EditShipmentPage() {
         }
       }
     });
-  }, [id]);
+  }, [id, router]);
 
   const handleAiSuggestHsCode = async (itemName: string): Promise<HsCodeSuggestion[]> => {
     const res = await fetch("/api/hs-code", {
