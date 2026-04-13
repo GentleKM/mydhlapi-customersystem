@@ -71,6 +71,26 @@ function ShipmentsPageContent() {
     loadShipments();
   }, [loadShipments]);
 
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        loadShipments();
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      loadShipments();
+    }, 2000);
+    window.addEventListener("focus", loadShipments);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", loadShipments);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [loadShipments]);
+
   const handleSyncTracking = async () => {
     setSyncNotice(null);
     setIsSyncing(true);

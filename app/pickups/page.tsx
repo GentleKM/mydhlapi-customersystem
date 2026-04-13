@@ -50,15 +50,32 @@ function PickupsPageContent() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const loadItems = async () => {
       const { data, error: loadError } = await getPickupRequests();
       if (cancelled) return;
       setItems(data ?? []);
       setError(loadError);
       setIsLoading(false);
-    })();
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void loadItems();
+      }
+    };
+
+    void loadItems();
+    const intervalId = window.setInterval(() => {
+      void loadItems();
+    }, 2000);
+    window.addEventListener("focus", loadItems);
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", loadItems);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
 
@@ -83,23 +100,23 @@ function PickupsPageContent() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>픽업 번호</TableHead>
-                  <TableHead>픽업 날짜</TableHead>
-                  <TableHead>요청 날짜</TableHead>
-                  <TableHead>출발 국가</TableHead>
-                  <TableHead>도착 국가</TableHead>
-                  <TableHead>상태</TableHead>
+                  <TableHead className="text-center">픽업 번호</TableHead>
+                  <TableHead className="text-center">픽업 날짜</TableHead>
+                  <TableHead className="text-center">요청 날짜</TableHead>
+                  <TableHead className="text-center">출발 국가</TableHead>
+                  <TableHead className="text-center">도착 국가</TableHead>
+                  <TableHead className="text-center">상태</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {items.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell>{item.pickupNumber ?? "-"}</TableCell>
-                    <TableCell>{formatDate(item.pickupDate)}</TableCell>
-                    <TableCell>{formatDateTime(item.requestedAt)}</TableCell>
-                    <TableCell>{item.originCountry}</TableCell>
-                    <TableCell>{item.destinationCountry}</TableCell>
-                    <TableCell>{statusLabelMap[item.status]}</TableCell>
+                    <TableCell className="text-center">{item.pickupNumber ?? "-"}</TableCell>
+                    <TableCell className="text-center">{formatDate(item.pickupDate)}</TableCell>
+                    <TableCell className="text-center">{formatDateTime(item.requestedAt)}</TableCell>
+                    <TableCell className="text-center">{item.originCountry}</TableCell>
+                    <TableCell className="text-center">{item.destinationCountry}</TableCell>
+                    <TableCell className="text-center">{statusLabelMap[item.status]}</TableCell>
                   </TableRow>
                 ))}
                 {items.length === 0 && (

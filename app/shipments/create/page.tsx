@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert } from "@/components/ui/alert";
 import { HsCodeFieldWithAi } from "@/components/HsCodeFieldWithAi";
 import type { HsCodeSuggestion } from "@/components/AiShipmentAssistant";
 import { AuthButtons } from "@/components/AuthButtons";
@@ -60,7 +59,7 @@ const createEmptyLineItem = (): LineItemFormData => ({
 /** PRD에 정의된 운송장 생성 페이지: 필수 필드 입력 폼 및 AI 입력 기능을 제공합니다. */
 export default function CreateShipmentPage() {
   const router = useRouter();
-  const [isApproved, setIsApproved] = useState(false);
+  const [isApproved, setIsApproved] = useState<boolean | null>(null);
 
   useEffect(() => {
     getIsApproved().then(setIsApproved);
@@ -131,7 +130,7 @@ export default function CreateShipmentPage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!isApproved) {
+    if (isApproved !== true) {
       alert("승인된 사용자만 운송장을 생성할 수 있습니다.");
       return;
     }
@@ -175,14 +174,6 @@ export default function CreateShipmentPage() {
         </div>
         <AuthButtons />
       </div>
-
-      {!isApproved && (
-        <Alert className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950">
-          <p className="col-start-2 col-span-1 text-sm text-yellow-900 dark:text-yellow-100">
-            승인된 사용자만 운송장 생성 및 픽업 요청이 가능합니다.
-          </p>
-        </Alert>
-      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 발송인 정보 */}
@@ -736,11 +727,19 @@ export default function CreateShipmentPage() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end pt-4">
-          <Button type="submit" disabled={isSubmitting || !isApproved}>
+        <div className="flex items-center justify-between gap-3 pt-4">
+          <p
+            className={`text-sm ${isApproved === false ? "text-yellow-700 dark:text-yellow-300" : "text-transparent"}`}
+            aria-live="polite"
+          >
+            {isApproved === false
+              ? "승인된 사용자만 운송장 생성 및 픽업 요청이 가능합니다."
+              : " "}
+          </p>
+          <Button type="submit" disabled={isSubmitting || isApproved !== true}>
             {isSubmitting
               ? "생성 중..."
-              : isApproved
+              : isApproved === true
                 ? "운송장 생성하기"
                 : "승인 필요"}
           </Button>

@@ -28,7 +28,33 @@ export default function HomePage() {
   const [stats, setStats] = useState<ShipmentStats>(EMPTY_STATS);
 
   useEffect(() => {
-    getShipmentStats().then((s) => setStats(s ?? EMPTY_STATS));
+    let cancelled = false;
+
+    const loadStats = async () => {
+      const s = await getShipmentStats();
+      if (cancelled) return;
+      setStats(s ?? EMPTY_STATS);
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void loadStats();
+      }
+    };
+
+    void loadStats();
+    const intervalId = window.setInterval(() => {
+      void loadStats();
+    }, 2000);
+    window.addEventListener("focus", loadStats);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", loadStats);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
   return (

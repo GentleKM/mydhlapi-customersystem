@@ -85,6 +85,7 @@ export interface PickupRequestFormProps {
   onSubmit?: () => void;
   isSubmitting?: boolean;
   isApproved?: boolean;
+  approvalMessage?: string | null;
 }
 
 /** Swagger `nonDocRequestPickup`에 대응하는 픽업 입력 UI입니다. */
@@ -94,6 +95,7 @@ export function PickupRequestForm({
   onSubmit,
   isSubmitting,
   isApproved = false,
+  approvalMessage = null,
 }: PickupRequestFormProps) {
   const set = <K extends keyof PickupRequestFormValue>(
     key: K,
@@ -517,7 +519,13 @@ export function PickupRequestForm({
             </div>
           </section>
 
-          <div className="flex justify-end pt-2">
+          <div className="flex items-center justify-between gap-3 pt-2">
+            <p
+              className={`text-sm ${approvalMessage ? "text-yellow-700 dark:text-yellow-300" : "text-transparent"}`}
+              aria-live="polite"
+            >
+              {approvalMessage ?? " "}
+            </p>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "요청 전송 중..." : isApproved ? "픽업 요청" : "승인 필요"}
             </Button>

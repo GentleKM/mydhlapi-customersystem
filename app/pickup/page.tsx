@@ -18,7 +18,7 @@ import { submitPickupRequest } from "@/lib/actions/pickup";
 /** PRD에 정의된 픽업 요청 페이지: MyDHL POST /pickups 및 Supabase 기록을 연동합니다. */
 export default function PickupPage() {
   const router = useRouter();
-  const [isApproved, setIsApproved] = useState(false);
+  const [isApproved, setIsApproved] = useState<boolean | null>(null);
   const [formValue, setFormValue] = useState<PickupRequestFormValue>(
     DEFAULT_PICKUP_FORM_VALUE
   );
@@ -39,7 +39,7 @@ export default function PickupPage() {
   }, []);
 
   const handleSubmit = async () => {
-    if (!isApproved) {
+    if (isApproved !== true) {
       alert("승인된 사용자만 픽업 요청을 할 수 있습니다.");
       return;
     }
@@ -81,20 +81,17 @@ export default function PickupPage() {
           <AuthButtons />
         </div>
 
-        {!isApproved && (
-          <Alert className="bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800">
-            <p className="col-start-2 col-span-1 text-sm text-yellow-900 dark:text-yellow-100">
-              승인된 사용자만 운송장 생성 및 픽업 요청이 가능합니다.
-            </p>
-          </Alert>
-        )}
-
         <PickupRequestForm
           value={formValue}
           onChange={setFormValue}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
-          isApproved={isApproved}
+          isApproved={isApproved === true}
+          approvalMessage={
+            isApproved === false
+              ? "승인된 사용자만 운송장 생성 및 픽업 요청이 가능합니다."
+              : null
+          }
         />
 
         {feedback && (
