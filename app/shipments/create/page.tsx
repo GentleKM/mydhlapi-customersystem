@@ -155,7 +155,7 @@ export default function CreateShipmentPage() {
         alert(`운송장 생성 실패: ${error}`);
         return;
       }
-      if (id) router.push(`/shipments/${id}`);
+      if (id) router.push("/shipments");
     } finally {
       setIsSubmitting(false);
     }

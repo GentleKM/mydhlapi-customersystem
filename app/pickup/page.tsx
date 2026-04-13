@@ -3,6 +3,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import {
   PickupRequestForm,
@@ -16,6 +17,7 @@ import { submitPickupRequest } from "@/lib/actions/pickup";
 
 /** PRD에 정의된 픽업 요청 페이지: MyDHL POST /pickups 및 Supabase 기록을 연동합니다. */
 export default function PickupPage() {
+  const router = useRouter();
   const [isApproved, setIsApproved] = useState(false);
   const [formValue, setFormValue] = useState<PickupRequestFormValue>(
     DEFAULT_PICKUP_FORM_VALUE
@@ -25,6 +27,12 @@ export default function PickupPage() {
     variant: "ok" | "err";
     message: string;
   } | null>(null);
+
+  const formatFeedbackMessage = (message: string): string => {
+    const normalizedLineBreaks = message.replace(/\r\n/g, "\n");
+    const collapsedSingleLines = normalizedLineBreaks.replace(/(?<!\n)\n(?!\n)/g, " ");
+    return collapsedSingleLines.replace(/[ \t]{2,}/g, " ").trim();
+  };
 
   useEffect(() => {
     getIsApproved().then(setIsApproved);
@@ -42,10 +50,11 @@ export default function PickupPage() {
       const res = await submitPickupRequest(formValue);
       if (res.ok) {
         const nums = res.dispatchConfirmationNumbers?.join(", ") ?? "-";
-        setFeedback({
-          variant: "ok",
-          message: `픽업 요청이 접수되었습니다. 배차 확인번호: ${nums}`,
-        });
+        const notice = encodeURIComponent(
+          `픽업 요청이 접수되었습니다. 배차 확인번호: ${nums}`
+        );
+        router.push(`/pickups?notice=${notice}`);
+        return;
       } else {
         setFeedback({
           variant: "err",
@@ -80,6 +89,14 @@ export default function PickupPage() {
           </Alert>
         )}
 
+        <PickupRequestForm
+          value={formValue}
+          onChange={setFormValue}
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+          isApproved={isApproved}
+        />
+
         {feedback && (
           <Alert
             className={
@@ -88,16 +105,11 @@ export default function PickupPage() {
                 : "border-destructive/50 bg-destructive/10"
             }
           >
-            <p className="text-sm whitespace-pre-wrap">{feedback.message}</p>
+            <p className="text-sm whitespace-normal break-words leading-6">
+              {formatFeedbackMessage(feedback.message)}
+            </p>
           </Alert>
         )}
-
-        <PickupRequestForm
-          value={formValue}
-          onChange={setFormValue}
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-        />
       </main>
     </FeaturePageShell>
   );

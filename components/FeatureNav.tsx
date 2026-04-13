@@ -4,7 +4,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, FileText, Package, Truck } from "lucide-react";
+import { Home, Search, FileText, Package, Truck, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: "/shipments/create", label: "운송장 생성", icon: FileText },
   { href: "/shipments", label: "운송장 조회", icon: Package },
   { href: "/pickup", label: "픽업 요청", icon: Truck },
+  { href: "/pickups", label: "픽업 조회", icon: List },
 ] as const;
 
 /** 현재 경로에 따라 활성 링크를 강조하는 좌측 세로 네비게이션입니다. */
@@ -35,6 +36,7 @@ export function FeatureNav() {
       return true;
     }
     if (href === "/pickup") return pathname === "/pickup";
+    if (href === "/pickups") return pathname === "/pickups";
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 

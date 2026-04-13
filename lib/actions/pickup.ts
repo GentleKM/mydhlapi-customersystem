@@ -145,6 +145,16 @@ export type SubmitPickupResult = {
   pickupId: string | null;
 };
 
+export type PickupListItem = {
+  id: string;
+  pickupNumber: string | null;
+  pickupDate: string;
+  requestedAt: string;
+  originCountry: string;
+  destinationCountry: string;
+  status: "pickup_requested" | "pickup_completed";
+};
+
 /** 브라우저 time 입력이 `9:00` 형태일 때 HH:MM으로 맞춥니다. */
 function normalizePickupRaw(raw: unknown): unknown {
   if (!raw || typeof raw !== "object") return raw;
@@ -278,4 +288,71 @@ export async function submitPickupRequest(
     dispatchConfirmationNumbers: confirmations,
     pickupId: row?.id ?? null,
   };
+}
+
+/** 로그인 사용자 기준 픽업 요청 목록을 최신순으로 조회합니다. */
+export async function getPickupRequests(): Promise<{
+  data: PickupListItem[] | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.id) {
+    return { data: null, error: "로그인이 필요합니다." };
+  }
+
+  const { data, error } = await supabase
+    .from("pickup")
+    .select(
+      "id, pickup_date, created_at, status, dispatch_confirmation_numbers, request_payload"
+    )
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  const items: PickupListItem[] = (data ?? []).map((row) => {
+    const r = row as {
+      id: string;
+      pickup_date: string;
+      created_at: string;
+      status: string;
+      dispatch_confirmation_numbers: string[] | null;
+      request_payload?: {
+        customerDetails?: {
+          shipperDetails?: { postalAddress?: { countryCode?: string } };
+          receiverDetails?: { postalAddress?: { countryCode?: string } };
+        };
+      } | null;
+    };
+    const confirmations = Array.isArray(r.dispatch_confirmation_numbers)
+      ? r.dispatch_confirmation_numbers
+      : [];
+    const pickupNumber =
+      confirmations.find((n) => n.startsWith("CBJ")) ?? confirmations[0] ?? null;
+    const originCountry =
+      r.request_payload?.customerDetails?.shipperDetails?.postalAddress?.countryCode?.toUpperCase() ??
+      "-";
+    const destinationCountry =
+      r.request_payload?.customerDetails?.receiverDetails?.postalAddress?.countryCode?.toUpperCase() ??
+      "-";
+    const status = r.status === "completed" ? "pickup_completed" : "pickup_requested";
+
+    return {
+      id: r.id,
+      pickupNumber,
+      pickupDate: r.pickup_date,
+      requestedAt: r.created_at,
+      originCountry,
+      destinationCountry,
+      status,
+    };
+  });
+
+  return { data: items, error: null };
 }

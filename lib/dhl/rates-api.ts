@@ -7,6 +7,7 @@ export interface DhlJsonError {
   message?: string;
   title?: string;
   status?: number;
+  additionalDetails?: string[];
   [key: string]: unknown;
 }
 
@@ -38,7 +39,11 @@ export async function dhlGetJson<T = unknown>(
       const err = json as DhlJsonError;
       const detail =
         err.detail || err.message || err.title || `HTTP ${res.status}`;
-      return { data: null, error: String(detail) };
+      const extra =
+        Array.isArray(err.additionalDetails) && err.additionalDetails.length > 0
+          ? `\n${err.additionalDetails.join("\n")}`
+          : "";
+      return { data: null, error: `${String(detail)}${extra}` };
     }
 
     return { data: json as T, error: null };
@@ -78,7 +83,11 @@ export async function dhlPostJson<T = unknown>(
       const err = json as DhlJsonError;
       const detail =
         err.detail || err.message || err.title || `HTTP ${res.status}`;
-      return { data: null, error: String(detail) };
+      const extra =
+        Array.isArray(err.additionalDetails) && err.additionalDetails.length > 0
+          ? `\n${err.additionalDetails.join("\n")}`
+          : "";
+      return { data: null, error: `${String(detail)}${extra}` };
     }
 
     return { data: json as T, error: null };
