@@ -12,7 +12,6 @@ export interface EmbeddedPickupForCreateShipment {
   closeTime: string;
   location: string;
   shipperContactPhone: string;
-  shipperContactEmail?: string;
   specialInstruction?: string;
 }
 
@@ -173,11 +172,6 @@ export function mapToDhlCreateShipmentRequest(
             phone: options.embeddedPickup.shipperContactPhone.trim().slice(0, 70),
             companyName: String(payload.shipper_name ?? "").slice(0, 100),
             fullName: String(payload.shipper_name ?? "").slice(0, 255),
-            ...(options.embeddedPickup.shipperContactEmail?.trim()
-              ? {
-                  email: options.embeddedPickup.shipperContactEmail.trim().slice(0, 70),
-                }
-              : {}),
           },
         },
       }

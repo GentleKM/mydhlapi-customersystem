@@ -113,7 +113,6 @@ export default function CreateShipmentPage() {
     closeTime: "18:00",
     location: "reception",
     shipperContactPhone: "",
-    shipperContactEmail: "",
     specialInstruction: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -162,10 +161,7 @@ export default function CreateShipmentPage() {
     try {
       let embeddedPickup: ShipmentEmbeddedPickupInput | undefined;
       if (withEmbeddedPickup) {
-        const parsed = shipmentEmbeddedPickupSchema.safeParse({
-          ...pickupExtra,
-          shipperContactEmail: pickupExtra.shipperContactEmail.trim() || undefined,
-        });
+        const parsed = shipmentEmbeddedPickupSchema.safeParse(pickupExtra);
         if (!parsed.success) {
           const msg = Object.values(parsed.error.flatten().fieldErrors)
             .flat()
@@ -791,9 +787,6 @@ export default function CreateShipmentPage() {
                 className="font-normal cursor-pointer leading-relaxed"
               >
                 운송장과 함께 픽업 예약하기
-                <span className="mt-1 block text-sm text-muted-foreground">
-                  선택 시 DHL 운송장 생성 API에 픽업 정보를 포함해 한 번에 요청합니다. 아래는 발송지·수취인 정보에 없는 항목만 입력합니다.
-                </span>
               </Label>
             </div>
             {withEmbeddedPickup && (
@@ -859,18 +852,7 @@ export default function CreateShipmentPage() {
                   />
                 </div>
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="ep-email">발송인 이메일 (픽업 연락용, 선택)</Label>
-                  <Input
-                    id="ep-email"
-                    type="email"
-                    value={pickupExtra.shipperContactEmail}
-                    onChange={(e) =>
-                      setPickupExtra((p) => ({ ...p, shipperContactEmail: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="ep-si">픽업 시 특이사항 (선택, 최대 75자)</Label>
+                  <Label htmlFor="ep-si">픽업 요청사항 (선택, 최대 75자)</Label>
                   <Input
                     id="ep-si"
                     value={pickupExtra.specialInstruction}

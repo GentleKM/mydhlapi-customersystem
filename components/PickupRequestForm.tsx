@@ -521,9 +521,9 @@ export function PickupRequestForm({
           <Separator />
 
           <section className="space-y-4">
-            <h3 className="text-sm font-semibold text-foreground">특이사항</h3>
+            <h3 className="text-sm font-semibold text-foreground">픽업 요청사항</h3>
             <div className="space-y-1.5">
-              <Label htmlFor="p-si">픽업 시 특이사항 (선택, 최대 80자)</Label>
+              <Label htmlFor="p-si">픽업 요청사항 (선택, 최대 80자)</Label>
               <Input
                 id="p-si"
                 value={value.specialInstruction ?? ""}

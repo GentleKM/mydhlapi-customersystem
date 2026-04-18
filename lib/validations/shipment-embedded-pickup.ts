@@ -16,10 +16,6 @@ export const shipmentEmbeddedPickupSchema = z
     location: z.string().min(1).max(80),
     /** pickupDetails.contactInformation.phone (필수) — 발송인 폼에 없는 값만 수집 */
     shipperContactPhone: z.string().min(1).max(70),
-    shipperContactEmail: z
-      .union([z.literal(""), z.string().email().max(70)])
-      .optional()
-      .transform((v) => (v === "" || v === undefined ? undefined : v)),
     specialInstruction: z.string().max(75).optional(),
   })
   .superRefine((data, ctx) => {
