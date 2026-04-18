@@ -47,6 +47,7 @@ export type PickupRequestFormValue = Omit<
 };
 
 export const DEFAULT_PICKUP_FORM_VALUE: PickupRequestFormValue = {
+  waybillNumbers: "",
   pickupDate: "",
   pickupTime: "09:00",
   closeTime: "18:00",
@@ -152,17 +153,31 @@ export function PickupRequestForm({
                 />
               </div>
             </div>
-            <div className="space-y-1.5 w-full">
-              <Label htmlFor="p-location">픽업 위치 설명 *</Label>
-              <Input
-                id="p-location"
-                value={value.location}
-                onChange={(e) => set("location", e.target.value)}
-                placeholder="예: reception"
-                maxLength={80}
-                className="w-full"
-                required
-              />
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+              <div className="space-y-1.5 min-w-0 flex flex-col">
+                <Label htmlFor="p-waybills">운송장 번호 *</Label>
+                <Input
+                  id="p-waybills"
+                  value={value.waybillNumbers}
+                  onChange={(e) => set("waybillNumbers", e.target.value)}
+                  placeholder="예: 1234567890 (복수 시 콤마 구분)"
+                  maxLength={2000}
+                  className="w-full"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5 min-w-0 flex flex-col">
+                <Label htmlFor="p-location">픽업 위치 설명 *</Label>
+                <Input
+                  id="p-location"
+                  value={value.location}
+                  onChange={(e) => set("location", e.target.value)}
+                  placeholder="예: reception"
+                  maxLength={80}
+                  className="w-full"
+                  required
+                />
+              </div>
             </div>
           </section>
 

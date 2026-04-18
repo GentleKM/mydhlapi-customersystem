@@ -93,6 +93,8 @@ export default function CreateShipmentPage() {
     },
     gogreenPlus: false,
   });
+  /** 라벨 발급 후 픽업 요청 페이지로 안내할지 여부입니다. */
+  const [requestPickupAfterLabel, setRequestPickupAfterLabel] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAiSuggestHsCode = async (
@@ -149,12 +151,16 @@ export default function CreateShipmentPage() {
           height: parseFloat(formData.package.height) || 0,
         },
         gogreenPlus: formData.gogreenPlus,
+        requestPickupAfterLabel,
       });
       if (error) {
         alert(`운송장 생성 실패: ${error}`);
         return;
       }
-      if (id) router.push("/shipments");
+      if (id) {
+        if (requestPickupAfterLabel) router.push(`/shipments/${id}`);
+        else router.push("/shipments");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -722,6 +728,34 @@ export default function CreateShipmentPage() {
               />
               <Label htmlFor="gogreen" className="font-normal cursor-pointer">
                 GoGreen Plus
+              </Label>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 픽업 요청 (라벨 발급 후 안내) */}
+        <Card className="bg-card/80 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="text-base">픽업 요청</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="pickup-with-shipment"
+                className="mt-0.5"
+                checked={requestPickupAfterLabel}
+                onCheckedChange={(checked) =>
+                  setRequestPickupAfterLabel(checked === true)
+                }
+              />
+              <Label
+                htmlFor="pickup-with-shipment"
+                className="font-normal cursor-pointer leading-relaxed"
+              >
+                운송장과 함께 픽업 예약하기
+                <span className="mt-1 block text-sm text-muted-foreground">
+                  선택 시 운송장 상세에서 라벨을 발급한 뒤 픽업 요청 페이지로 이동합니다.
+                </span>
               </Label>
             </div>
           </CardContent>

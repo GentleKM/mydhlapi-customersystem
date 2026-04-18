@@ -148,6 +148,8 @@ export type SubmitPickupResult = {
 export type PickupListItem = {
   id: string;
   pickupNumber: string | null;
+  /** 연동된 DHL 운송장 번호(복수 시 콤마 구분). 없으면 null. */
+  waybillNumbers: string | null;
   pickupDate: string;
   requestedAt: string;
   originCountry: string;
@@ -159,6 +161,9 @@ export type PickupListItem = {
 function normalizePickupRaw(raw: unknown): unknown {
   if (!raw || typeof raw !== "object") return raw;
   const o = { ...(raw as Record<string, unknown>) };
+  if (typeof o.waybillNumbers === "string") {
+    o.waybillNumbers = o.waybillNumbers.trim();
+  }
   for (const key of ["pickupTime", "closeTime"]) {
     const v = o[key];
     if (typeof v === "string") {
@@ -170,6 +175,15 @@ function normalizePickupRaw(raw: unknown): unknown {
     }
   }
   return o;
+}
+
+/** 운송장 번호 문자열을 토큰 배열로 나눕니다(중복 제거, 입력 순서 유지). */
+function splitWaybillTokens(raw: string): string[] {
+  const parts = raw
+    .split(/[,\s，]+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+  return [...new Set(parts)];
 }
 
 /** 픽업 폼을 검증한 뒤 DHL API를 호출하고 결과를 DB에 저장합니다. */
@@ -212,15 +226,6 @@ export async function submitPickupRequest(
     };
   }
 
-  const accountNumber = pickAccountNumberByRoute(
-    input.shipperCountryCode,
-    input.receiverCountryCode,
-    env.accountExp,
-    env.accountImp
-  );
-
-  const body = buildPickupRequestBody(input, accountNumber);
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -233,6 +238,68 @@ export async function submitPickupRequest(
       pickupId: null,
     };
   }
+
+  const waybillTokens = splitWaybillTokens(input.waybillNumbers);
+  if (waybillTokens.length === 0) {
+    return {
+      ok: false,
+      error: "유효한 운송장 번호를 입력하세요.",
+      dispatchConfirmationNumbers: null,
+      pickupId: null,
+    };
+  }
+
+  const { data: shipmentRows, error: shipLookupError } = await supabase
+    .from("shipment")
+    .select("id, airway_bill_number")
+    .eq("user_id", user.id)
+    .in("airway_bill_number", waybillTokens);
+
+  if (shipLookupError) {
+    return {
+      ok: false,
+      error: `운송장 조회에 실패했습니다: ${shipLookupError.message}`,
+      dispatchConfirmationNumbers: null,
+      pickupId: null,
+    };
+  }
+
+  const byAwb = new Map(
+    (shipmentRows ?? []).map((r) => {
+      const row = r as { id: string; airway_bill_number: string | null };
+      return [String(row.airway_bill_number ?? "").trim(), row.id] as const;
+    })
+  );
+  const missing = waybillTokens.filter((t) => !byAwb.has(t));
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      error: `본인 계정에서 찾을 수 없는 운송장 번호입니다: ${missing.join(", ")}`,
+      dispatchConfirmationNumbers: null,
+      pickupId: null,
+    };
+  }
+
+  const primaryShipmentId = byAwb.get(waybillTokens[0]) ?? null;
+  if (!primaryShipmentId) {
+    return {
+      ok: false,
+      error: "운송장과 연결할 수 없습니다.",
+      dispatchConfirmationNumbers: null,
+      pickupId: null,
+    };
+  }
+
+  const associatedAirwayBillNumbers = waybillTokens.join(", ");
+
+  const accountNumber = pickAccountNumberByRoute(
+    input.shipperCountryCode,
+    input.receiverCountryCode,
+    env.accountExp,
+    env.accountImp
+  );
+
+  const body = buildPickupRequestBody(input, accountNumber);
 
   const { data: apiData, error: apiError } = await dhlPostJson<{
     dispatchConfirmationNumbers?: string[];
@@ -250,6 +317,8 @@ export async function submitPickupRequest(
 
   const insertRow = {
     user_id: user.id,
+    shipment_id: primaryShipmentId,
+    associated_airway_bill_numbers: associatedAirwayBillNumbers,
     account_name: input.shipperCompanyName.trim(),
     address: addressSummary,
     contact_number: input.shipperPhone.trim(),
@@ -282,11 +351,26 @@ export async function submitPickupRequest(
     };
   }
 
+  const pickupId = row?.id ?? null;
+  if (pickupId) {
+    const linkedShipmentIds = [
+      ...new Set((shipmentRows ?? []).map((r) => (r as { id: string }).id)),
+    ];
+    const { error: linkErr } = await supabase
+      .from("shipment")
+      .update({ pickup_id: pickupId })
+      .in("id", linkedShipmentIds)
+      .eq("user_id", user.id);
+    if (linkErr) {
+      console.error("shipment pickup_id 연결 오류:", linkErr);
+    }
+  }
+
   return {
     ok: !errMsg,
     error: errMsg,
     dispatchConfirmationNumbers: confirmations,
-    pickupId: row?.id ?? null,
+    pickupId,
   };
 }
 
@@ -307,7 +391,7 @@ export async function getPickupRequests(): Promise<{
   const { data, error } = await supabase
     .from("pickup")
     .select(
-      "id, pickup_date, created_at, status, dispatch_confirmation_numbers, request_payload"
+      "id, pickup_date, created_at, status, dispatch_confirmation_numbers, request_payload, associated_airway_bill_numbers, shipment_id"
     )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
@@ -316,20 +400,40 @@ export async function getPickupRequests(): Promise<{
     return { data: null, error: error.message };
   }
 
-  const items: PickupListItem[] = (data ?? []).map((row) => {
-    const r = row as {
-      id: string;
-      pickup_date: string;
-      created_at: string;
-      status: string;
-      dispatch_confirmation_numbers: string[] | null;
-      request_payload?: {
-        customerDetails?: {
-          shipperDetails?: { postalAddress?: { countryCode?: string } };
-          receiverDetails?: { postalAddress?: { countryCode?: string } };
-        };
-      } | null;
-    };
+  const rowsRaw = (data ?? []) as Array<{
+    id: string;
+    pickup_date: string;
+    created_at: string;
+    status: string;
+    dispatch_confirmation_numbers: string[] | null;
+    associated_airway_bill_numbers?: string | null;
+    shipment_id?: string | null;
+    request_payload?: {
+      customerDetails?: {
+        shipperDetails?: { postalAddress?: { countryCode?: string } };
+        receiverDetails?: { postalAddress?: { countryCode?: string } };
+      };
+    } | null;
+  }>;
+
+  const linkedShipmentIds = [
+    ...new Set(rowsRaw.map((r) => r.shipment_id).filter(Boolean)),
+  ] as string[];
+
+  const awbByShipmentId = new Map<string, string | null>();
+  if (linkedShipmentIds.length > 0) {
+    const { data: shipRows } = await supabase
+      .from("shipment")
+      .select("id, airway_bill_number")
+      .eq("user_id", user.id)
+      .in("id", linkedShipmentIds);
+    for (const s of shipRows ?? []) {
+      const row = s as { id: string; airway_bill_number: string | null };
+      awbByShipmentId.set(row.id, row.airway_bill_number);
+    }
+  }
+
+  const items: PickupListItem[] = rowsRaw.map((r) => {
     const confirmations = Array.isArray(r.dispatch_confirmation_numbers)
       ? r.dispatch_confirmation_numbers
       : [];
@@ -343,9 +447,17 @@ export async function getPickupRequests(): Promise<{
       "-";
     const status = r.status === "completed" ? "pickup_completed" : "pickup_requested";
 
+    const fromAssoc = r.associated_airway_bill_numbers?.trim();
+    const fromShipment =
+      r.shipment_id != null
+        ? (awbByShipmentId.get(r.shipment_id)?.trim() ?? null)
+        : null;
+    const waybillNumbers = fromAssoc || fromShipment || null;
+
     return {
       id: r.id,
       pickupNumber,
+      waybillNumbers,
       pickupDate: r.pickup_date,
       requestedAt: r.created_at,
       originCountry,

@@ -14,6 +14,11 @@ const optionalEmail = z
   .transform((v) => (v === "" || v === undefined ? undefined : v));
 
 export const pickupFormSchema = z.object({
+  /** DHL 운송장 번호(복수 시 콤마·공백 구분). 본인 소유 운송장과 매칭됩니다. */
+  waybillNumbers: z
+    .string()
+    .min(1, "운송장 번호를 입력하세요.")
+    .max(2000, "운송장 번호 입력이 너무 깁니다."),
   pickupDate: z.string().min(1, "픽업 일자를 선택하세요."),
   pickupTime: timeHm,
   closeTime: timeHm,

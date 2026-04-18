@@ -26,6 +26,8 @@ export type ShipmentStatus =
 export interface ShipmentListItem {
   id: string;
   airwayBillNumber?: string;
+  /** 연결된 픽업의 배차 확인번호(표시용)가 있으면 설정합니다. */
+  pickupNumber?: string | null;
   destinationCountry: string;
   status: ShipmentStatus;
   createdAt: string;
@@ -79,6 +81,17 @@ export interface CreateShipmentInput {
     height: number;
   };
   gogreenPlus: boolean;
+  /** true이면 라벨 발급 성공 시 픽업 요청 페이지로 안내합니다. */
+  requestPickupAfterLabel?: boolean;
+}
+
+/** dispatch_confirmation_numbers 배열에서 화면에 표시할 픽업 번호 하나를 고릅니다. */
+function pickupNumberFromDispatchList(
+  numbers: string[] | null | undefined
+): string | null {
+  const list = Array.isArray(numbers) ? numbers : [];
+  const preferred = list.find((n) => n.startsWith("CBJ"));
+  return preferred ?? list[0] ?? null;
 }
 
 /** 현재 로그인한 사용자의 운송장 통계를 조회합니다. */
@@ -128,7 +141,7 @@ export async function getShipments(filters?: {
   let query = supabase
     .from("shipment")
     .select(
-      "id, airway_bill_number, receiver_country, status, created_at, estimated_delivery_at"
+      "id, airway_bill_number, receiver_country, status, created_at, estimated_delivery_at, pickup_id"
     )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
@@ -147,14 +160,83 @@ export async function getShipments(filters?: {
     return { data: null, error: error.message };
   }
 
-  const items: ShipmentListItem[] = (data ?? []).map((row) => ({
-    id: row.id,
-    airwayBillNumber: row.airway_bill_number ?? undefined,
-    destinationCountry: row.receiver_country,
-    status: row.status as ShipmentStatus,
-    createdAt: row.created_at,
-    estimatedDeliveryAt: row.estimated_delivery_at ?? null,
-  }));
+  type Row = {
+    id: string;
+    airway_bill_number: string | null;
+    receiver_country: string;
+    status: string;
+    created_at: string;
+    estimated_delivery_at: string | null;
+    pickup_id: string | null;
+  };
+
+  const rows = (data ?? []) as Row[];
+  const shipmentIds = rows.map((r) => r.id);
+  const pickupIds = [
+    ...new Set(rows.map((r) => r.pickup_id).filter(Boolean)),
+  ] as string[];
+
+  const pickupByShipmentId = new Map<string, { dispatch_confirmation_numbers: string[] | null }>();
+  const pickupById = new Map<string, { dispatch_confirmation_numbers: string[] | null }>();
+
+  if (shipmentIds.length > 0) {
+    const { data: linkedByShipment } = await supabase
+      .from("pickup")
+      .select("id, shipment_id, dispatch_confirmation_numbers")
+      .eq("user_id", user.id)
+      .in("shipment_id", shipmentIds);
+
+    for (const p of linkedByShipment ?? []) {
+      const row = p as {
+        shipment_id: string | null;
+        dispatch_confirmation_numbers: string[] | null;
+      };
+      if (row.shipment_id) {
+        pickupByShipmentId.set(row.shipment_id, {
+          dispatch_confirmation_numbers: row.dispatch_confirmation_numbers,
+        });
+      }
+    }
+  }
+
+  if (pickupIds.length > 0) {
+    const { data: linkedById } = await supabase
+      .from("pickup")
+      .select("id, dispatch_confirmation_numbers")
+      .eq("user_id", user.id)
+      .in("id", pickupIds);
+
+    for (const p of linkedById ?? []) {
+      const row = p as { id: string; dispatch_confirmation_numbers: string[] | null };
+      pickupById.set(row.id, {
+        dispatch_confirmation_numbers: row.dispatch_confirmation_numbers,
+      });
+    }
+  }
+
+  const items: ShipmentListItem[] = rows.map((row) => {
+    let pickupNumber: string | null = null;
+    if (row.pickup_id) {
+      pickupNumber = pickupNumberFromDispatchList(
+        pickupById.get(row.pickup_id)?.dispatch_confirmation_numbers ?? null
+      );
+    }
+    if (!pickupNumber) {
+      pickupNumber = pickupNumberFromDispatchList(
+        pickupByShipmentId.get(row.id)?.dispatch_confirmation_numbers ?? null
+      );
+    }
+
+    return {
+      id: row.id,
+      airwayBillNumber: row.airway_bill_number ?? undefined,
+      pickupNumber,
+      destinationCountry: row.receiver_country,
+      status: row.status as ShipmentStatus,
+      createdAt: row.created_at,
+      estimatedDeliveryAt: row.estimated_delivery_at ?? null,
+    };
+  });
 
   return { data: items, error: null };
 }
@@ -384,6 +466,7 @@ export async function createShipment(
       receiver_phone: input.receiver.phone,
       content_type: input.contentType,
       gogreen_plus: input.gogreenPlus,
+      request_pickup_after_label: Boolean(input.requestPickupAfterLabel),
       status: "draft",
     })
     .select("id")
@@ -561,13 +644,18 @@ export async function deleteShipment(
 /** MyDHL API로 라벨을 생성하고 DB를 업데이트합니다. PRD 6단계: 라벨 생성 버튼 클릭 시 실행. */
 export async function createDhlLabel(
   shipmentId: string
-): Promise<{ awb: string | null; error: string | null }> {
+): Promise<{
+  awb: string | null;
+  error: string | null;
+  /** 운송장 생성 시 픽업 연동을 선택한 경우 라벨 성공 후 픽업 페이지로 보냅니다. */
+  redirectToPickup: boolean;
+}> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user?.id) {
-    return { awb: null, error: "로그인이 필요합니다." };
+    return { awb: null, error: "로그인이 필요합니다.", redirectToPickup: false };
   }
 
   const baseUrl = process.env.DHL_BASE_URL;
@@ -577,18 +665,28 @@ export async function createDhlLabel(
   const accountImp = process.env.DHL_ACCOUNT_IMP;
 
   if (!baseUrl || !clientId || !clientSecret || !accountExp || !accountImp) {
-    return { awb: null, error: "DHL API 설정이 완료되지 않았습니다. 관리자에게 문의해주세요." };
+    return {
+      awb: null,
+      error: "DHL API 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.",
+      redirectToPickup: false,
+    };
   }
 
   const { data: shipmentData, error: fetchError } = await getShipmentById(shipmentId);
   if (fetchError || !shipmentData) {
-    return { awb: null, error: fetchError ?? "운송장을 찾을 수 없습니다." };
+    return {
+      awb: null,
+      error: fetchError ?? "운송장을 찾을 수 없습니다.",
+      redirectToPickup: false,
+    };
   }
 
   const s = shipmentData as Record<string, unknown>;
   const status = s.status as string;
+  const redirectToPickup =
+    Boolean((s as { request_pickup_after_label?: boolean }).request_pickup_after_label) === true;
   if (status !== "draft") {
-    return { awb: null, error: "이미 라벨이 생성된 운송장입니다." };
+    return { awb: null, error: "이미 라벨이 생성된 운송장입니다.", redirectToPickup: false };
   }
 
   const lineItems = ((shipmentData as { lineItems?: Array<Record<string, unknown>> }).lineItems ?? []).map((li) => ({
@@ -606,7 +704,7 @@ export async function createDhlLabel(
 
   const pkg = (shipmentData as { package?: Record<string, unknown> }).package;
   if (!pkg) {
-    return { awb: null, error: "포장 정보가 없습니다." };
+    return { awb: null, error: "포장 정보가 없습니다.", redirectToPickup: false };
   }
 
   const payload = {
@@ -648,12 +746,20 @@ export async function createDhlLabel(
   );
 
   if (dhlError || !dhlResponse) {
-    return { awb: null, error: dhlError ?? "DHL API 호출에 실패했습니다." };
+    return {
+      awb: null,
+      error: dhlError ?? "DHL API 호출에 실패했습니다.",
+      redirectToPickup: false,
+    };
   }
 
   const awb = dhlResponse.shipmentTrackingNumber;
   if (!awb) {
-    return { awb: null, error: "DHL 응답에서 운송장 번호를 찾을 수 없습니다." };
+    return {
+      awb: null,
+      error: "DHL 응답에서 운송장 번호를 찾을 수 없습니다.",
+      redirectToPickup: false,
+    };
   }
 
   const { error: updateError } = await supabase
@@ -661,15 +767,20 @@ export async function createDhlLabel(
     .update({
       airway_bill_number: awb,
       status: "label_created",
+      request_pickup_after_label: false,
     })
     .eq("id", shipmentId)
     .eq("user_id", user.id);
 
   if (updateError) {
-    return { awb, error: `라벨 생성은 완료되었으나 DB 업데이트에 실패했습니다: ${updateError.message}` };
+    return {
+      awb,
+      error: `라벨 생성은 완료되었으나 DB 업데이트에 실패했습니다: ${updateError.message}`,
+      redirectToPickup: false,
+    };
   }
 
-  return { awb, error: null };
+  return { awb, error: null, redirectToPickup };
 }
 
 /** 사용자 승인 여부를 조회합니다. */

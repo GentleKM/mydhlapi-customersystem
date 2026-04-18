@@ -48,6 +48,9 @@ function ShipmentsPageContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
+  const [selectedShipmentIds, setSelectedShipmentIds] = useState<Set<string>>(
+    () => new Set()
+  );
 
   useEffect(() => {
     if (statusFromUrl && VALID_STATUSES.includes(statusFromUrl as ShipmentFilterStatus)) {
@@ -55,38 +58,48 @@ function ShipmentsPageContent() {
     }
   }, [statusFromUrl]);
 
-  const loadShipments = useCallback(() => {
-    setIsLoading(true);
-    getShipments({
-      status: filters.status === "all" ? undefined : filters.status,
-      destinationCountry: filters.destinationCountry,
-    }).then(({ data, error }) => {
-      setItems(data ?? []);
-      setIsLoading(false);
-      if (error) console.error(error);
-    });
+  useEffect(() => {
+    setSelectedShipmentIds(new Set());
   }, [filters.status, filters.destinationCountry]);
 
+  const loadShipments = useCallback(
+    async (mode: "full" | "silent" = "full") => {
+      if (mode === "full") setIsLoading(true);
+      try {
+        const { data, error } = await getShipments({
+          status: filters.status === "all" ? undefined : filters.status,
+          destinationCountry: filters.destinationCountry,
+        });
+        setItems(data ?? []);
+        if (error) console.error(error);
+      } finally {
+        if (mode === "full") setIsLoading(false);
+      }
+    },
+    [filters.status, filters.destinationCountry]
+  );
+
   useEffect(() => {
-    loadShipments();
+    void loadShipments("full");
   }, [loadShipments]);
 
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
-        loadShipments();
+        void loadShipments("silent");
       }
     };
 
     const intervalId = window.setInterval(() => {
-      loadShipments();
-    }, 2000);
-    window.addEventListener("focus", loadShipments);
+      void loadShipments("silent");
+    }, 30000);
+    const onFocus = () => void loadShipments("silent");
+    window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       window.clearInterval(intervalId);
-      window.removeEventListener("focus", loadShipments);
+      window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [loadShipments]);
@@ -96,7 +109,7 @@ function ShipmentsPageContent() {
     setIsSyncing(true);
     try {
       const res = await syncShipmentTrackingFromDhl();
-      await loadShipments();
+      await loadShipments("silent");
       if (res.failures.length > 0) {
         const sample = res.failures
           .slice(0, 3)
@@ -124,6 +137,20 @@ function ShipmentsPageContent() {
 
   const handleRowClick = (item: ShipmentListItem) => {
     router.push(`/shipments/${item.id}`);
+  };
+
+  const handleGoPickupRequest = () => {
+    const awbs = items
+      .filter((i) => selectedShipmentIds.has(i.id))
+      .map((i) => String(i.airwayBillNumber ?? "").trim())
+      .filter(Boolean);
+    if (awbs.length === 0) {
+      alert(
+        "픽업 요청할 운송장을 선택해 주세요. (운송장 번호가 발급된 건만 선택할 수 있습니다.)"
+      );
+      return;
+    }
+    router.push(`/pickup?waybills=${encodeURIComponent(awbs.join(", "))}`);
   };
 
   const countryOptions = [
@@ -170,19 +197,33 @@ function ShipmentsPageContent() {
         <CardHeader>
           <CardTitle className="text-base">운송장 목록</CardTitle>
           <CardAction>
-            <Button
-              type="button"
-              disabled={isSyncing || isLoading}
-              onClick={() => void handleSyncTracking()}
-            >
-              {isSyncing ? "상태 동기화 중..." : "상태 업데이트"}
-            </Button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isLoading}
+                onClick={handleGoPickupRequest}
+              >
+                픽업 요청
+              </Button>
+              <Button
+                type="button"
+                disabled={isSyncing || isLoading}
+                onClick={() => void handleSyncTracking()}
+              >
+                {isSyncing ? "상태 동기화 중..." : "상태 업데이트"}
+              </Button>
+            </div>
           </CardAction>
         </CardHeader>
         <CardContent>
           <ShipmentList
             items={items}
             onRowClick={handleRowClick}
+            selection={{
+              selectedIds: selectedShipmentIds,
+              onChange: setSelectedShipmentIds,
+            }}
             emptyMessage={
               isLoading
                 ? "로딩 중..."

@@ -107,11 +107,14 @@ create table public.shipment (
   status public.shipment_status not null default 'draft',
   estimated_delivery_at timestamptz,
   pickup_id uuid,
+  request_pickup_after_label boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 comment on table public.shipment is '사용자별 운송장 데이터 (MyDHL API 스펙 기반)';
+comment on column public.shipment.request_pickup_after_label is
+  '운송장 생성 시 픽업 연동을 선택한 경우 true. 라벨 발급 성공 시 픽업 요청 페이지로 안내합니다.';
 
 create index idx_shipment_user_id on public.shipment(user_id);
 create index idx_shipment_status on public.shipment(status);
@@ -240,6 +243,7 @@ create table public.pickup (
   response_payload jsonb,
   dispatch_confirmation_numbers text[],
   dhl_error text,
+  associated_airway_bill_numbers text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -250,6 +254,8 @@ comment on column public.pickup.response_payload is 'DHL 응답 본문(JSON)';
 comment on column public.pickup.dispatch_confirmation_numbers is '배차 확인 번호 목록';
 comment on column public.pickup.dhl_error is 'DHL API 오류 메시지';
 comment on column public.pickup.shipment_id is '연결된 운송장 ID (운송장과 함께 픽업 요청한 경우 또는 나중에 연결)';
+comment on column public.pickup.associated_airway_bill_numbers is
+  '픽업 요청 시 입력·연동된 DHL 운송장 번호(복수 시 콤마 구분)';
 
 create index idx_pickup_user_id on public.pickup(user_id);
 create index idx_pickup_shipment_id on public.pickup(shipment_id);

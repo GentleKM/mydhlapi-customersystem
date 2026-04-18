@@ -49,9 +49,13 @@ export default function ShipmentDetailPage() {
     setIsCreatingLabel(true);
     setLabelError(null);
     try {
-      const { awb, error } = await createDhlLabel(id);
+      const { awb, error, redirectToPickup } = await createDhlLabel(id);
       if (error) {
         setLabelError(error);
+        return;
+      }
+      if (redirectToPickup && awb) {
+        router.push(`/pickup?waybills=${encodeURIComponent(awb)}`);
         return;
       }
       if (awb) {

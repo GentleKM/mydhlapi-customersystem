@@ -101,6 +101,7 @@ function PickupsPageContent() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-center">픽업 번호</TableHead>
+                  <TableHead className="text-center">운송장 번호</TableHead>
                   <TableHead className="text-center">픽업 날짜</TableHead>
                   <TableHead className="text-center">요청 날짜</TableHead>
                   <TableHead className="text-center">출발 국가</TableHead>
@@ -112,6 +113,9 @@ function PickupsPageContent() {
                 {items.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="text-center">{item.pickupNumber ?? "-"}</TableCell>
+                    <TableCell className="text-center font-mono text-xs">
+                      {item.waybillNumbers?.trim() ? item.waybillNumbers : "—"}
+                    </TableCell>
                     <TableCell className="text-center">{formatDate(item.pickupDate)}</TableCell>
                     <TableCell className="text-center">{formatDateTime(item.requestedAt)}</TableCell>
                     <TableCell className="text-center">{item.originCountry}</TableCell>
@@ -122,7 +126,7 @@ function PickupsPageContent() {
                 {items.length === 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="text-center text-muted-foreground"
                     >
                       {isLoading

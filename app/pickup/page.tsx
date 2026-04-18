@@ -2,8 +2,8 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Alert } from "@/components/ui/alert";
 import {
   PickupRequestForm,
@@ -15,9 +15,11 @@ import { FeaturePageShell } from "@/components/FeaturePageShell";
 import { getIsApproved } from "@/lib/actions/shipment";
 import { submitPickupRequest } from "@/lib/actions/pickup";
 
-/** PRD에 정의된 픽업 요청 페이지: MyDHL POST /pickups 및 Supabase 기록을 연동합니다. */
-export default function PickupPage() {
+/** useSearchParams를 쓰는 픽업 요청 본문입니다. */
+function PickupPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const waybillsFromQuery = searchParams.get("waybills");
   const [isApproved, setIsApproved] = useState<boolean | null>(null);
   const [formValue, setFormValue] = useState<PickupRequestFormValue>(
     DEFAULT_PICKUP_FORM_VALUE
@@ -37,6 +39,18 @@ export default function PickupPage() {
   useEffect(() => {
     getIsApproved().then(setIsApproved);
   }, []);
+
+  useEffect(() => {
+    const raw = waybillsFromQuery?.trim();
+    if (!raw) return;
+    try {
+      const decoded = decodeURIComponent(raw).trim();
+      if (!decoded) return;
+      setFormValue((prev) => ({ ...prev, waybillNumbers: decoded }));
+    } catch {
+      setFormValue((prev) => ({ ...prev, waybillNumbers: raw }));
+    }
+  }, [waybillsFromQuery]);
 
   const handleSubmit = async () => {
     if (isApproved !== true) {
@@ -109,5 +123,22 @@ export default function PickupPage() {
         )}
       </main>
     </FeaturePageShell>
+  );
+}
+
+/** PRD에 정의된 픽업 요청 페이지: MyDHL POST /pickups 및 Supabase 기록을 연동합니다. */
+export default function PickupPage() {
+  return (
+    <Suspense
+      fallback={
+        <FeaturePageShell>
+          <main className="max-w-4xl mx-auto w-full">
+            <p className="text-muted-foreground">로딩 중...</p>
+          </main>
+        </FeaturePageShell>
+      }
+    >
+      <PickupPageContent />
+    </Suspense>
   );
 }
