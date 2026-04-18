@@ -28,6 +28,10 @@ import {
   createShipment,
   getIsApproved,
 } from "@/lib/actions/shipment";
+import {
+  shipmentEmbeddedPickupSchema,
+  type ShipmentEmbeddedPickupInput,
+} from "@/lib/validations/shipment-embedded-pickup";
 
 /** 주요 국가 코드 (ISO 3166-1 Alpha-2) */
 const COUNTRY_OPTIONS = [
@@ -42,6 +46,13 @@ const COUNTRY_OPTIONS = [
   { code: "AU", name: "호주" },
   { code: "CA", name: "캐나다" },
 ];
+
+/** 픽업 예정일 기본값(내일)을 YYYY-MM-DD 로 돌려줍니다. */
+function defaultPickupReadyDate(): string {
+  const t = new Date();
+  t.setDate(t.getDate() + 1);
+  return t.toISOString().slice(0, 10);
+}
 
 const createEmptyLineItem = (): LineItemFormData => ({
   exportReasonType: "commercial",
@@ -93,8 +104,18 @@ export default function CreateShipmentPage() {
     },
     gogreenPlus: false,
   });
-  /** 라벨 발급 후 픽업 요청 페이지로 안내할지 여부입니다. */
-  const [requestPickupAfterLabel, setRequestPickupAfterLabel] = useState(false);
+  /** MyDHL 운송장 API에 픽업(pickup)을 함께 넣을지 여부입니다. */
+  const [withEmbeddedPickup, setWithEmbeddedPickup] = useState(false);
+  /** 발송인 폼에 없는 픽업 전용 필드만 보관합니다. */
+  const [pickupExtra, setPickupExtra] = useState({
+    readyDate: "",
+    readyTime: "09:00",
+    closeTime: "18:00",
+    location: "reception",
+    shipperContactPhone: "",
+    shipperContactEmail: "",
+    specialInstruction: "",
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAiSuggestHsCode = async (
@@ -139,6 +160,22 @@ export default function CreateShipmentPage() {
 
     setIsSubmitting(true);
     try {
+      let embeddedPickup: ShipmentEmbeddedPickupInput | undefined;
+      if (withEmbeddedPickup) {
+        const parsed = shipmentEmbeddedPickupSchema.safeParse({
+          ...pickupExtra,
+          shipperContactEmail: pickupExtra.shipperContactEmail.trim() || undefined,
+        });
+        if (!parsed.success) {
+          const msg = Object.values(parsed.error.flatten().fieldErrors)
+            .flat()
+            .filter(Boolean)[0] as string | undefined;
+          alert(msg ?? "픽업 정보를 확인해 주세요.");
+          return;
+        }
+        embeddedPickup = parsed.data;
+      }
+
       const { id, error } = await createShipment({
         shipper: formData.shipper,
         receiver: formData.receiver,
@@ -151,16 +188,13 @@ export default function CreateShipmentPage() {
           height: parseFloat(formData.package.height) || 0,
         },
         gogreenPlus: formData.gogreenPlus,
-        requestPickupAfterLabel,
+        embeddedPickup,
       });
       if (error) {
         alert(`운송장 생성 실패: ${error}`);
         return;
       }
-      if (id) {
-        if (requestPickupAfterLabel) router.push(`/shipments/${id}`);
-        else router.push("/shipments");
-      }
+      if (id) router.push(`/shipments/${id}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -733,20 +767,24 @@ export default function CreateShipmentPage() {
           </CardContent>
         </Card>
 
-        {/* 픽업 요청 (라벨 발급 후 안내) */}
+        {/* 픽업: MyDHL POST /shipments 의 pickup 객체로 동시 요청 */}
         <Card className="bg-card/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-base">픽업 요청</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex items-start gap-2">
               <Checkbox
                 id="pickup-with-shipment"
                 className="mt-0.5"
-                checked={requestPickupAfterLabel}
-                onCheckedChange={(checked) =>
-                  setRequestPickupAfterLabel(checked === true)
-                }
+                checked={withEmbeddedPickup}
+                onCheckedChange={(checked) => {
+                  const on = checked === true;
+                  setWithEmbeddedPickup(on);
+                  if (on && !pickupExtra.readyDate) {
+                    setPickupExtra((p) => ({ ...p, readyDate: defaultPickupReadyDate() }));
+                  }
+                }}
               />
               <Label
                 htmlFor="pickup-with-shipment"
@@ -754,10 +792,96 @@ export default function CreateShipmentPage() {
               >
                 운송장과 함께 픽업 예약하기
                 <span className="mt-1 block text-sm text-muted-foreground">
-                  선택 시 운송장 상세에서 라벨을 발급한 뒤 픽업 요청 페이지로 이동합니다.
+                  선택 시 DHL 운송장 생성 API에 픽업 정보를 포함해 한 번에 요청합니다. 아래는 발송지·수취인 정보에 없는 항목만 입력합니다.
                 </span>
               </Label>
             </div>
+            {withEmbeddedPickup && (
+              <div className="grid gap-4 border-t pt-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="ep-ready-date">픽업(발송) 예정일 *</Label>
+                  <Input
+                    id="ep-ready-date"
+                    type="date"
+                    value={pickupExtra.readyDate}
+                    onChange={(e) =>
+                      setPickupExtra((p) => ({ ...p, readyDate: e.target.value }))
+                    }
+                    required={withEmbeddedPickup}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ep-ready-time">픽업(발송) 예정 시각 (로컬) *</Label>
+                  <Input
+                    id="ep-ready-time"
+                    type="time"
+                    value={pickupExtra.readyTime}
+                    onChange={(e) =>
+                      setPickupExtra((p) => ({ ...p, readyTime: e.target.value }))
+                    }
+                    required={withEmbeddedPickup}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ep-close">현장 마감 시각 *</Label>
+                  <Input
+                    id="ep-close"
+                    type="time"
+                    value={pickupExtra.closeTime}
+                    onChange={(e) =>
+                      setPickupExtra((p) => ({ ...p, closeTime: e.target.value }))
+                    }
+                    required={withEmbeddedPickup}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ep-location">픽업 위치 설명 *</Label>
+                  <Input
+                    id="ep-location"
+                    value={pickupExtra.location}
+                    onChange={(e) =>
+                      setPickupExtra((p) => ({ ...p, location: e.target.value }))
+                    }
+                    maxLength={80}
+                    required={withEmbeddedPickup}
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="ep-phone">픽업 현장 연락 전화 *</Label>
+                  <Input
+                    id="ep-phone"
+                    type="tel"
+                    value={pickupExtra.shipperContactPhone}
+                    onChange={(e) =>
+                      setPickupExtra((p) => ({ ...p, shipperContactPhone: e.target.value }))
+                    }
+                    required={withEmbeddedPickup}
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="ep-email">발송인 이메일 (픽업 연락용, 선택)</Label>
+                  <Input
+                    id="ep-email"
+                    type="email"
+                    value={pickupExtra.shipperContactEmail}
+                    onChange={(e) =>
+                      setPickupExtra((p) => ({ ...p, shipperContactEmail: e.target.value }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="ep-si">픽업 시 특이사항 (선택, 최대 75자)</Label>
+                  <Input
+                    id="ep-si"
+                    value={pickupExtra.specialInstruction}
+                    onChange={(e) =>
+                      setPickupExtra((p) => ({ ...p, specialInstruction: e.target.value }))
+                    }
+                    maxLength={75}
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

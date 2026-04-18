@@ -7,8 +7,15 @@
 
 import { createClient } from "@/lib/supabase/server";
 import type { ContentType } from "@/lib/shipment-types";
-import { mapToDhlCreateShipmentRequest } from "@/lib/dhl/mapper";
+import {
+  mapToDhlCreateShipmentRequest,
+  type DbShipmentPayload,
+} from "@/lib/dhl/mapper";
 import { createDhlShipment } from "@/lib/dhl/client";
+import {
+  shipmentEmbeddedPickupSchema,
+  type ShipmentEmbeddedPickupInput,
+} from "@/lib/validations/shipment-embedded-pickup";
 import { dhlGetJson } from "@/lib/dhl/rates-api";
 import {
   mapDhlTrackingToShipmentStatus,
@@ -81,8 +88,46 @@ export interface CreateShipmentInput {
     height: number;
   };
   gogreenPlus: boolean;
-  /** true이면 라벨 발급 성공 시 픽업 요청 페이지로 안내합니다. */
-  requestPickupAfterLabel?: boolean;
+  /** 설정 시 MyDHL 운송장 생성 요청에 픽업(pickup)을 포함해 한 번에 처리합니다. */
+  embeddedPickup?: ShipmentEmbeddedPickupInput;
+}
+
+/** createShipment 입력을 DHL 매퍼용 DB 스냅샷 형태로 변환합니다. */
+function createInputToDbPayload(input: CreateShipmentInput): DbShipmentPayload {
+  return {
+    shipper_name: input.shipper.name,
+    shipper_address1: input.shipper.address1,
+    shipper_address2: input.shipper.address2 || null,
+    shipper_postal_code: input.shipper.postalCode,
+    shipper_city: input.shipper.cityName,
+    receiver_name: input.receiver.name,
+    receiver_company: input.receiver.company || null,
+    receiver_country: input.receiver.country,
+    receiver_address1: input.receiver.address1,
+    receiver_address2: input.receiver.address2 || null,
+    receiver_postal_code: input.receiver.postalCode,
+    receiver_city: input.receiver.cityName,
+    receiver_email: input.receiver.email,
+    receiver_phone: input.receiver.phone,
+    content_type: input.contentType,
+    gogreen_plus: input.gogreenPlus,
+    lineItems:
+      input.contentType === "goods"
+        ? input.lineItems.map((item) => ({
+            description: item.description,
+            quantity_value: item.quantityValue,
+            quantity_unit: item.quantityUnit,
+            value: item.value,
+            value_currency: item.valueCurrency || "USD",
+            weight_net: item.weight,
+            weight_gross: item.weight,
+            hs_code: item.hsCode || null,
+            manufacturer_country: item.manufacturerCountry || null,
+            export_reason_type: item.exportReasonType,
+          }))
+        : [],
+    package: input.package,
+  };
 }
 
 /** dispatch_confirmation_numbers 배열에서 화면에 표시할 픽업 번호 하나를 고릅니다. */
@@ -466,7 +511,7 @@ export async function createShipment(
       receiver_phone: input.receiver.phone,
       content_type: input.contentType,
       gogreen_plus: input.gogreenPlus,
-      request_pickup_after_label: Boolean(input.requestPickupAfterLabel),
+      request_pickup_after_label: false,
       status: "draft",
     })
     .select("id")
@@ -511,6 +556,113 @@ export async function createShipment(
   if (pkgError) {
     await supabase.from("shipment").delete().eq("id", shipment.id);
     return { id: null, error: pkgError.message };
+  }
+
+  if (input.embeddedPickup) {
+    const epParsed = shipmentEmbeddedPickupSchema.safeParse(input.embeddedPickup);
+    if (!epParsed.success) {
+      const msg = epParsed.error.flatten().fieldErrors;
+      const first = Object.values(msg)
+        .flat()
+        .filter(Boolean)[0] as string | undefined;
+      await supabase.from("shipment").delete().eq("id", shipment.id);
+      return { id: null, error: first ?? "픽업 입력값을 확인해 주세요." };
+    }
+    const ep = epParsed.data;
+
+    const baseUrl = process.env.DHL_BASE_URL;
+    const clientId = process.env.DHL_CLIENT_ID;
+    const clientSecret = process.env.DHL_CLIENT_SECRET;
+    const accountExp = process.env.DHL_ACCOUNT_EXP;
+    const accountImp = process.env.DHL_ACCOUNT_IMP;
+    if (!baseUrl || !clientId || !clientSecret || !accountExp || !accountImp) {
+      await supabase.from("shipment").delete().eq("id", shipment.id);
+      return { id: null, error: "DHL API 설정이 완료되지 않았습니다." };
+    }
+
+    const dbPayload = createInputToDbPayload(input);
+    const dhlBody = mapToDhlCreateShipmentRequest(
+      dbPayload,
+      { accountExp, accountImp },
+      { embeddedPickup: ep }
+    );
+
+    const { data: dhlData, error: dhlErr } = await createDhlShipment(
+      baseUrl,
+      clientId,
+      clientSecret,
+      dhlBody
+    );
+
+    if (dhlErr || !dhlData?.shipmentTrackingNumber) {
+      await supabase.from("shipment").delete().eq("id", shipment.id);
+      return { id: null, error: dhlErr ?? "DHL 운송장 생성에 실패했습니다." };
+    }
+
+    const awb = String(dhlData.shipmentTrackingNumber).trim();
+    const dispRaw = dhlData as {
+      dispatchConfirmationNumber?: string;
+      dispatchConfirmationNumbers?: string[];
+    };
+    const disp =
+      (typeof dispRaw.dispatchConfirmationNumber === "string"
+        ? dispRaw.dispatchConfirmationNumber
+        : null) ??
+      (Array.isArray(dispRaw.dispatchConfirmationNumbers)
+        ? dispRaw.dispatchConfirmationNumbers[0]
+        : null);
+
+    const { error: upShipErr } = await supabase
+      .from("shipment")
+      .update({
+        airway_bill_number: awb,
+        status: "label_created",
+      })
+      .eq("id", shipment.id)
+      .eq("user_id", user.id);
+
+    if (upShipErr) {
+      return {
+        id: shipment.id,
+        error: `라벨은 생성되었으나 DB 반영에 실패했습니다: ${upShipErr.message}`,
+      };
+    }
+
+    const addressSummary = [input.shipper.address1, input.shipper.address2]
+      .filter(Boolean)
+      .join(", ");
+
+    const { data: pickupRow, error: puInsErr } = await supabase
+      .from("pickup")
+      .insert({
+        user_id: user.id,
+        shipment_id: shipment.id,
+        associated_airway_bill_numbers: awb,
+        account_name: input.shipper.name,
+        address: addressSummary,
+        contact_number: ep.shipperContactPhone.trim(),
+        pickup_date: ep.readyDate,
+        note: ep.specialInstruction?.trim() || null,
+        status: "scheduled",
+        request_payload: dhlBody as object,
+        response_payload: dhlData as object,
+        dispatch_confirmation_numbers: disp ? [disp] : null,
+        dhl_error: null,
+      })
+      .select("id")
+      .single();
+
+    if (pickupRow?.id) {
+      await supabase
+        .from("shipment")
+        .update({ pickup_id: pickupRow.id })
+        .eq("id", shipment.id)
+        .eq("user_id", user.id);
+    } else if (puInsErr) {
+      console.error("pickup insert after shipment:", puInsErr);
+    }
+
+    return { id: shipment.id, error: null };
   }
 
   return { id: shipment.id, error: null };
@@ -644,18 +796,13 @@ export async function deleteShipment(
 /** MyDHL API로 라벨을 생성하고 DB를 업데이트합니다. PRD 6단계: 라벨 생성 버튼 클릭 시 실행. */
 export async function createDhlLabel(
   shipmentId: string
-): Promise<{
-  awb: string | null;
-  error: string | null;
-  /** 운송장 생성 시 픽업 연동을 선택한 경우 라벨 성공 후 픽업 페이지로 보냅니다. */
-  redirectToPickup: boolean;
-}> {
+): Promise<{ awb: string | null; error: string | null }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user?.id) {
-    return { awb: null, error: "로그인이 필요합니다.", redirectToPickup: false };
+    return { awb: null, error: "로그인이 필요합니다." };
   }
 
   const baseUrl = process.env.DHL_BASE_URL;
@@ -668,7 +815,6 @@ export async function createDhlLabel(
     return {
       awb: null,
       error: "DHL API 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.",
-      redirectToPickup: false,
     };
   }
 
@@ -677,16 +823,13 @@ export async function createDhlLabel(
     return {
       awb: null,
       error: fetchError ?? "운송장을 찾을 수 없습니다.",
-      redirectToPickup: false,
     };
   }
 
   const s = shipmentData as Record<string, unknown>;
   const status = s.status as string;
-  const redirectToPickup =
-    Boolean((s as { request_pickup_after_label?: boolean }).request_pickup_after_label) === true;
   if (status !== "draft") {
-    return { awb: null, error: "이미 라벨이 생성된 운송장입니다.", redirectToPickup: false };
+    return { awb: null, error: "이미 라벨이 생성된 운송장입니다." };
   }
 
   const lineItems = ((shipmentData as { lineItems?: Array<Record<string, unknown>> }).lineItems ?? []).map((li) => ({
@@ -704,7 +847,7 @@ export async function createDhlLabel(
 
   const pkg = (shipmentData as { package?: Record<string, unknown> }).package;
   if (!pkg) {
-    return { awb: null, error: "포장 정보가 없습니다.", redirectToPickup: false };
+    return { awb: null, error: "포장 정보가 없습니다." };
   }
 
   const payload = {
@@ -749,7 +892,6 @@ export async function createDhlLabel(
     return {
       awb: null,
       error: dhlError ?? "DHL API 호출에 실패했습니다.",
-      redirectToPickup: false,
     };
   }
 
@@ -758,7 +900,6 @@ export async function createDhlLabel(
     return {
       awb: null,
       error: "DHL 응답에서 운송장 번호를 찾을 수 없습니다.",
-      redirectToPickup: false,
     };
   }
 
@@ -767,7 +908,6 @@ export async function createDhlLabel(
     .update({
       airway_bill_number: awb,
       status: "label_created",
-      request_pickup_after_label: false,
     })
     .eq("id", shipmentId)
     .eq("user_id", user.id);
@@ -776,11 +916,10 @@ export async function createDhlLabel(
     return {
       awb,
       error: `라벨 생성은 완료되었으나 DB 업데이트에 실패했습니다: ${updateError.message}`,
-      redirectToPickup: false,
     };
   }
 
-  return { awb, error: null, redirectToPickup };
+  return { awb, error: null };
 }
 
 /** 사용자 승인 여부를 조회합니다. */

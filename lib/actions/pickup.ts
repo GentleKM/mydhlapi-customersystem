@@ -34,10 +34,79 @@ function getDhlEnv(): {
   return { baseUrl, clientId, clientSecret, accountExp, accountImp };
 }
 
+/** DB에 저장된 운송장들로 POST /pickups 의 shipmentDetails 배열을 만듭니다(AWB별 1건). */
+function buildPickupShipmentDetailsFromShipments(
+  orderedAwbs: string[],
+  byAwbToShipmentId: Map<string, string>,
+  shipments: Array<{
+    id: string;
+    airway_bill_number: string | null;
+    content_type: string;
+  }>,
+  packagesByShipmentId: Map<
+    string,
+    { weight: number; length: number; width: number; height: number }
+  >,
+  declaredByShipmentId: Map<string, { value: number; currency: string }>,
+  accountNumber: string
+): { ok: true; details: Record<string, unknown>[] } | { ok: false; error: string } {
+  const shipById = new Map(shipments.map((s) => [s.id, s]));
+  const details: Record<string, unknown>[] = [];
+  const acc = { typeCode: "shipper", number: accountNumber };
+
+  for (const awbToken of orderedAwbs) {
+    const sid = byAwbToShipmentId.get(awbToken);
+    if (!sid) {
+      return { ok: false, error: `운송장 번호 매핑 오류: ${awbToken}` };
+    }
+    const ship = shipById.get(sid);
+    const awb = String(ship?.airway_bill_number ?? "").trim();
+    if (!awb) {
+      return {
+        ok: false,
+        error: `라벨이 발급되지 않은 운송장은 픽업에 포함할 수 없습니다: ${awbToken}`,
+      };
+    }
+    const pkg = packagesByShipmentId.get(sid);
+    if (!pkg) {
+      return {
+        ok: false,
+        error: `포장 정보가 없어 픽업 요청을 구성할 수 없습니다: ${awbToken}`,
+      };
+    }
+    const isGoods = ship?.content_type === "goods";
+    const decl = declaredByShipmentId.get(sid) ?? { value: 1, currency: "USD" };
+    const productCode = isGoods ? "P" : "D";
+
+    details.push({
+      productCode,
+      isCustomsDeclarable: isGoods,
+      unitOfMeasurement: "metric",
+      declaredValue: decl.value,
+      declaredValueCurrency: decl.currency.toUpperCase().slice(0, 3),
+      accounts: [acc],
+      shipmentTrackingNumber: awb,
+      packages: [
+        {
+          weight: Math.max(0.001, Number(pkg.weight) || 0.001),
+          dimensions: {
+            length: Math.max(1, Math.round(Number(pkg.length) || 1)),
+            width: Math.max(1, Math.round(Number(pkg.width) || 1)),
+            height: Math.max(1, Math.round(Number(pkg.height) || 1)),
+          },
+        },
+      ],
+    });
+  }
+
+  return { ok: true, details };
+}
+
 /** Zod 입력으로 MyDHL Pickup 요청 본문을 구성합니다. */
 function buildPickupRequestBody(
   input: PickupFormInput,
-  accountNumber: string
+  accountNumber: string,
+  shipmentDetailsOverride?: Record<string, unknown>[] | null
 ): Record<string, unknown> {
   const oc = input.shipperCountryCode.toUpperCase().slice(0, 2);
   const dc = input.receiverCountryCode.toUpperCase().slice(0, 2);
@@ -109,6 +178,11 @@ function buildPickupRequestBody(
     ],
   };
 
+  const shipmentDetails =
+    shipmentDetailsOverride && shipmentDetailsOverride.length > 0
+      ? shipmentDetailsOverride
+      : [shipmentItem];
+
   const body: Record<string, unknown> = {
     plannedPickupDateAndTime: formatPlannedPickupDateTime(
       input.pickupDate,
@@ -128,7 +202,7 @@ function buildPickupRequestBody(
         contactInformation: receiverContact,
       },
     },
-    shipmentDetails: [shipmentItem],
+    shipmentDetails,
   };
 
   if (specialInstructions) {
@@ -299,7 +373,104 @@ export async function submitPickupRequest(
     env.accountImp
   );
 
-  const body = buildPickupRequestBody(input, accountNumber);
+  const linkedIds = [
+    ...new Set((shipmentRows ?? []).map((r) => (r as { id: string }).id)),
+  ];
+
+  const { data: shipFullRows, error: shipFullErr } = await supabase
+    .from("shipment")
+    .select("id, airway_bill_number, content_type")
+    .eq("user_id", user.id)
+    .in("id", linkedIds);
+
+  if (shipFullErr || !shipFullRows?.length) {
+    return {
+      ok: false,
+      error: `운송장 상세를 불러오지 못했습니다: ${shipFullErr?.message ?? "데이터 없음"}`,
+      dispatchConfirmationNumbers: null,
+      pickupId: null,
+    };
+  }
+
+  const { data: pkgRows, error: pkgErr } = await supabase
+    .from("shipment_package")
+    .select("shipment_id, weight, length, width, height")
+    .in("shipment_id", linkedIds);
+
+  if (pkgErr) {
+    return {
+      ok: false,
+      error: `포장 정보를 불러오지 못했습니다: ${pkgErr.message}`,
+      dispatchConfirmationNumbers: null,
+      pickupId: null,
+    };
+  }
+
+  const { data: lineRows } = await supabase
+    .from("shipment_line_item")
+    .select("shipment_id, value, value_currency")
+    .in("shipment_id", linkedIds);
+
+  const packagesByShipmentId = new Map<
+    string,
+    { weight: number; length: number; width: number; height: number }
+  >();
+  for (const p of pkgRows ?? []) {
+    const r = p as {
+      shipment_id: string;
+      weight: number;
+      length: number;
+      width: number;
+      height: number;
+    };
+    packagesByShipmentId.set(r.shipment_id, {
+      weight: Number(r.weight),
+      length: Number(r.length),
+      width: Number(r.width),
+      height: Number(r.height),
+    });
+  }
+
+  const declaredByShipmentId = new Map<string, { value: number; currency: string }>();
+  for (const sid of linkedIds) {
+    const ship = (shipFullRows as Array<{ id: string; content_type: string }>).find(
+      (s) => s.id === sid
+    );
+    const lines = (lineRows ?? []).filter(
+      (l) => (l as { shipment_id: string }).shipment_id === sid
+    ) as Array<{ value: number; value_currency: string }>;
+    if (ship?.content_type === "goods" && lines.length > 0) {
+      const value = Math.max(0.001, lines.reduce((s, li) => s + Number(li.value), 0));
+      const currency = String(lines[0]?.value_currency || "USD").slice(0, 3);
+      declaredByShipmentId.set(sid, { value, currency });
+    } else {
+      declaredByShipmentId.set(sid, { value: 1, currency: "USD" });
+    }
+  }
+
+  const detailResult = buildPickupShipmentDetailsFromShipments(
+    waybillTokens,
+    byAwb,
+    shipFullRows as Array<{
+      id: string;
+      airway_bill_number: string | null;
+      content_type: string;
+    }>,
+    packagesByShipmentId,
+    declaredByShipmentId,
+    accountNumber
+  );
+
+  if (!detailResult.ok) {
+    return {
+      ok: false,
+      error: detailResult.error,
+      dispatchConfirmationNumbers: null,
+      pickupId: null,
+    };
+  }
+
+  const body = buildPickupRequestBody(input, accountNumber, detailResult.details);
 
   const { data: apiData, error: apiError } = await dhlPostJson<{
     dispatchConfirmationNumbers?: string[];

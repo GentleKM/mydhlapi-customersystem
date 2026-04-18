@@ -1,8 +1,22 @@
 /**
  * DB 운송장 데이터를 MyDHL API Create Shipment 요청 JSON으로 변환하는 매퍼입니다.
- * docs/mydhl-api-2.9.0-swagger copy.yaml 규격을 따릅니다.
+ * docs/mydhl-api-2.9.0-swagger.yaml 규격을 따릅니다.
  */
 
+import { formatPlannedPickupDateTime } from "@/lib/dhl/rates-api";
+
+/** 운송장 생성 요청에 포함하는 픽업(POST /shipments 의 pickup 객체)입니다. */
+export interface EmbeddedPickupForCreateShipment {
+  readyDate: string;
+  readyTime: string;
+  closeTime: string;
+  location: string;
+  shipperContactPhone: string;
+  shipperContactEmail?: string;
+  specialInstruction?: string;
+}
+
+/** 운송장 생성 매퍼 입력(내부 DB 스냅샷과 동일 형태)입니다. */
 export interface DbShipmentPayload {
   shipper_name: string;
   shipper_address1: string;
@@ -45,14 +59,31 @@ export interface DhlConfig {
   accountImp: string;
 }
 
+function normalizeCloseTime(t: string): string {
+  const raw = (t || "18:00").trim();
+  const m = raw.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return "18:00";
+  const hh = Math.min(23, Math.max(0, parseInt(m[1], 10)));
+  const mm = Math.min(59, Math.max(0, parseInt(m[2], 10)));
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
 /** DB 데이터를 MyDHL API Create Shipment 요청 본문으로 변환합니다. */
 export function mapToDhlCreateShipmentRequest(
   payload: DbShipmentPayload,
-  config: DhlConfig
+  config: DhlConfig,
+  options?: { embeddedPickup?: EmbeddedPickupForCreateShipment }
 ): Record<string, unknown> {
   const now = new Date();
   now.setDate(now.getDate() + 1);
-  const plannedShipping = now.toISOString().replace(/\.\d{3}Z$/, " GMT+00:00");
+  const defaultPlanned = now.toISOString().replace(/\.\d{3}Z$/, " GMT+00:00");
+  const plannedShipping = options?.embeddedPickup
+    ? formatPlannedPickupDateTime(
+        options.embeddedPickup.readyDate,
+        options.embeddedPickup.readyTime,
+        "GMT+09:00"
+      )
+    : defaultPlanned;
 
   const shipperAddress: Record<string, string> = {
     postalCode: String(payload.shipper_postal_code ?? "").slice(0, 12),
@@ -119,11 +150,43 @@ export function mapToDhlCreateShipmentRequest(
   }
 
   const isGoods = payload.content_type === "goods" && payload.lineItems.length > 0;
+  const productCode = isGoods ? "P" : "D";
+
+  const pickupBlock: Record<string, unknown> = options?.embeddedPickup
+    ? {
+        isRequested: true,
+        closeTime: normalizeCloseTime(options.embeddedPickup.closeTime),
+        location: options.embeddedPickup.location.trim().slice(0, 80),
+        ...(options.embeddedPickup.specialInstruction?.trim()
+          ? {
+              specialInstructions: [
+                {
+                  value: options.embeddedPickup.specialInstruction.trim().slice(0, 75),
+                },
+              ],
+            }
+          : {}),
+        pickupDetails: {
+          typeCode: "business",
+          postalAddress: { ...shipperAddress },
+          contactInformation: {
+            phone: options.embeddedPickup.shipperContactPhone.trim().slice(0, 70),
+            companyName: String(payload.shipper_name ?? "").slice(0, 100),
+            fullName: String(payload.shipper_name ?? "").slice(0, 255),
+            ...(options.embeddedPickup.shipperContactEmail?.trim()
+              ? {
+                  email: options.embeddedPickup.shipperContactEmail.trim().slice(0, 70),
+                }
+              : {}),
+          },
+        },
+      }
+    : { isRequested: false };
 
   const base: Record<string, unknown> = {
     plannedShippingDateAndTime: plannedShipping,
-    pickup: { isRequested: false },
-    productCode: "P",
+    pickup: pickupBlock,
+    productCode,
     getRateEstimates: false,
     accounts: [
       { typeCode: "shipper", number: config.accountExp },
